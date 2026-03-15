@@ -27,3 +27,8 @@ frontend/node_modules/
 package-lock.json
 
 .env
+
+# data
+backend/data/*.csv
+backend/data/*.npz
+backend/data/*.pkl

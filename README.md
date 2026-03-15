@@ -11,6 +11,7 @@
 - [Virtual Environments and Dependency Tracking](#virtual-environments-and-dependency-tracking)
 - [Additional Resources](#additional-resources)
 - [Feedback and Support](#feedback-and-support)
+- [POURfect Setup](#pourfect-setup)
 
 ## Summary
 
@@ -215,3 +216,28 @@ Keep your virtual environment out of git — it inflates repository size and wil
 
 - **Problems with deployment?** Post on Ed Discussion or email course staff
 - **Questions about the deployment system?** Course staff are happy to help!
+
+## POURfect Setup
+In your terminal, navigate the the POURfect project folder.
+1. Install dependencies
+```bash
+conda create -n POURfect python=3.10.19
+conda activate POURfect
+pip install -r requirements.txt
+```
+
+2. Generate dataset
+In ```backend``` folder, create folder called ```data```. Download [Wine and Food Pairing Dataset](https://www.kaggle.com/datasets/wafaaelhusseini/wine-and-food-pairing-dataset) and [Wine Reviews](https://www.kaggle.com/datasets/zynicide/wine-reviews) dataset to that ```data``` folder. Then, in the terminal (in the POURfect directory), run
+```bash
+python backend/preprocess_data.py
+```
+
+3. Build TF-IDF index
+```bash
+python backend/build_tfidf.py
+```
+
+4. Search for a wine pairing to a user entered food description
+```bash
+python backend/search_wines.py
+```
