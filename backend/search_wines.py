@@ -2,7 +2,7 @@
 # It loads the preprocessed dataset, TF-IDF matrix, and vectorizer, and allows 
 # users to input a food or meal description to find matching wines based on 
 # cosine similarity. The results are displayed in a readable format, showing the 
-# wine's name, variety, winery, suggested food pairing, and description.
+# wine's name, variety, winery, and description (and possibly other information).
 ### This script as created with the help of ChatGPT. ChatGPT was used for 
 # guidance with the pipeline of the application and getting started with the code.
 
@@ -19,7 +19,7 @@ def load_resources():
   Load dataset, TF-IDF matrix, and vectorizer.
   """
 
-  df = pd.read_csv(DATA_DIR / "merged_POURfect_dataset.csv")
+  df = pd.read_csv(DATA_DIR / "cleaned_wine_reviews.csv")
   
   X = load_npz(DATA_DIR / "tfidf_matrix.npz")
 
@@ -48,9 +48,9 @@ def search_wines(query, df, X, vectorizer, top_k=10):
         "variety",
         "winery",
         "price",
-        "food_item",
-        "cuisine",
-        "description_y"
+        "points",
+        "country",
+        "description"
     ]].to_dict(orient="records")
 
 def display_results(results):
@@ -64,8 +64,10 @@ def display_results(results):
       print(f"Wine: {row['title']}")
       print(f"Variety: {row['variety']}")
       print(f"Winery: {row['winery']}")
-      print(f"Suggested Food Pairing: {row['food_item']}")
-      print(f"Wine Description: {row['description_y']}")
+      print(f"Price: ${row['price']}")
+      print(f"Points: {row['points']}")
+      print(f"Country: {row['country']}")
+      print(f"Wine Description: {row['description'][:200]}...")
       print("-" * 40)
 
 def main():
