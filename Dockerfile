@@ -23,11 +23,16 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 FROM python:3.10-slim
 
 ENV CONTAINER_HOME=/var/www
+# added
+ENV PYTHONPATH=/var/www
 
 WORKDIR $CONTAINER_HOME
 
 COPY --from=python-deps /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY src/ $CONTAINER_HOME/src/
 COPY --from=frontend-build /app/frontend/dist $CONTAINER_HOME/frontend/dist
+
+# added
+COPY backend/ $CONTAINER_HOME/backend/
 
 CMD ["python", "-m", "gunicorn", "--chdir", "src", "app:app", "--bind", "0.0.0.0:5000", "--log-level", "debug"]
