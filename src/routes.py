@@ -6,7 +6,8 @@ To enable AI chat, set USE_LLM = True below. See llm_routes.py for AI code.
 import json
 import os
 from flask import send_from_directory, request, jsonify
-from models import db, Episode, Review
+from src.models import Episode
+from backend.search_wines import search_wines as backend_search_wines
 
 # ── AI toggle ────────────────────────────────────────────────────────────────
 USE_LLM = False
@@ -49,6 +50,14 @@ def register_routes(app):
     def episodes_search():
         text = request.args.get("title", "")
         return jsonify(json_search(text))
+
+    @app.route("/api/search")
+    def wine_search():
+        query = request.args.get("query", "")
+        if not query or not query.strip():
+            return jsonify([])
+        results = backend_search_wines(query, top_k=5)
+        return jsonify(results)
 
     if USE_LLM:
         from llm_routes import register_chat_route

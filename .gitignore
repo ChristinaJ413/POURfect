@@ -31,4 +31,4 @@ package-lock.json
 # data
 backend/data/*.csv
 backend/data/*.npz
-backend/data/*.pkl
+backend/data/*.pklbackend/data/

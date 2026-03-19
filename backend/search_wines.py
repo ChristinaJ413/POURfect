@@ -14,10 +14,19 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 DATA_DIR = Path("backend/data")
 
+_df = None
+_X = None
+_vectorizer = None
+
+
 def load_resources():
   """
-  Load dataset, TF-IDF matrix, and vectorizer.
+  Load dataset, TF-IDF matrix, and vectorizer (cached).
   """
+  global _df, _X, _vectorizer
+
+  if _df is not None and _X is not None and _vectorizer is not None:
+    return _df, _X, _vectorizer
 
   df = pd.read_csv(DATA_DIR / "cleaned_wine_reviews.csv")
   
@@ -26,14 +35,21 @@ def load_resources():
   with open(DATA_DIR / "tfidf_vectorizer.pkl", "rb") as f:
     vectorizer = pickle.load(f)
 
+  _df, _X, _vectorizer = df, X, vectorizer
   print("Resources loaded successfully.")
 
   return df, X, vectorizer
 
-def search_wines(query, df, X, vectorizer, top_k=10):
+
+def search_wines(query, top_k=5):
   """
-  Search for wines matching the food query.
+  Search for wines matching the food query and return a list of dicts
+  suitable for JSON serialization.
   """
+  if not query or not query.strip():
+    return []
+
+  df, X, vectorizer = load_resources()
 
   query_vec = vectorizer.transform([query])
 
@@ -41,17 +57,23 @@ def search_wines(query, df, X, vectorizer, top_k=10):
 
   top_indices = scores.argsort()[-top_k:][::-1]
 
-  results = df.iloc[top_indices]
+  results = df.iloc[top_indices].copy()
+  results["similarity"] = scores[top_indices]
 
-  return results[[
-        "title",
-        "variety",
-        "winery",
-        "price",
-        "points",
-        "country",
-        "description"
-    ]].to_dict(orient="records")
+  records = []
+  for row in results.itertuples(index=False):
+    records.append({
+        "title": getattr(row, "title", None),
+        "variety": getattr(row, "variety", None),
+        "winery": getattr(row, "winery", None),
+        "price": getattr(row, "price", None),
+        "points": getattr(row, "points", None),
+        "country": getattr(row, "country", None),
+        "description": getattr(row, "description", None),
+        "similarity": getattr(row, "similarity", None),
+    })
+
+  return records
 
 def display_results(results):
   """
@@ -67,18 +89,20 @@ def display_results(results):
       print(f"Price: ${row['price']}")
       print(f"Points: {row['points']}")
       print(f"Country: {row['country']}")
-      print(f"Wine Description: {row['description'][:200]}...")
+
+      description = row["description"] or "No description available."
+      print(f"Wine Description: {description[:200]}...")
       print("-" * 40)
 
 def main():
-
-  df, X, vectorizer = load_resources()
-
+  """
+  Simple CLI for manual testing.
+  """
+  load_resources()
   query = input("Enter a food or meal description: ")
-
-  results = search_wines(query, df, X, vectorizer)
-
+  results = search_wines(query)
   display_results(results)
+
 
 if __name__ == "__main__":
   main()

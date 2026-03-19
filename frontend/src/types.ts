@@ -1,5 +1,10 @@
-export interface Episode {
-  title: string;
-  descr: string;
-  imdb_rating: number;
+export interface WineResult {
+  title: string
+  variety: string | null
+  winery: string | null
+  price: number | null
+  points?: number | null
+  country?: string | null
+  description: string | null
+  similarity?: number
 }
