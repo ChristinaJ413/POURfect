@@ -12,7 +12,9 @@ import pickle
 from scipy.sparse import load_npz
 from sklearn.metrics.pairwise import cosine_similarity
 
-DATA_DIR = Path("backend/data")
+#DATA_DIR = Path("backend/data")
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
 
 _df = None
 _X = None
