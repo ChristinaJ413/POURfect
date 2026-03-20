@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import SearchIcon from './assets/mag.png'
 import { WineResult } from './types'
 import Chat from './Chat'
 
@@ -8,80 +7,140 @@ function App(): JSX.Element {
   const [useLlm, setUseLlm] = useState<boolean | null>(null)
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [results, setResults] = useState<WineResult[]>([])
+  const [hasSearched, setHasSearched] = useState<boolean>(false)
+  const sampleMeals = ['Steak', 'Pizza', 'Pasta', 'Burger', 'Lobster']
 
   useEffect(() => {
-    fetch('/api/config').then(r => r.json()).then(data => setUseLlm(data.use_llm))
+    fetch('/api/config')
+      .then(r => r.json())
+      .then(data => setUseLlm(data.use_llm))
   }, [])
 
   const handleSearch = async (value: string): Promise<void> => {
+    const query = value.trim()
     setSearchTerm(value)
-    if (value.trim() === '') { setResults([]); return }
-    const response = await fetch(`/api/search?query=${encodeURIComponent(value)}`)
-    const data: WineResult[] = await response.json()
-    setResults(data)
+    setHasSearched(query.length > 0)
+
+    if (query === '') {
+      setResults([])
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`)
+      if (!response.ok) {
+        throw new Error('Search request failed')
+      }
+
+      const data: WineResult[] = await response.json()
+      console.log('search data:', data)
+      setResults(data)
+    } catch (error) {
+      console.error('Search error:', error)
+      setResults([])
+    }
+  }
+
+  const onSearchSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+    e.preventDefault()
+    void handleSearch(searchTerm)
+  }
+
+  const onChipClick = (meal: string): void => {
+    setSearchTerm(meal)
+    void handleSearch(meal)
   }
 
   if (useLlm === null) return <></>
 
   return (
     <div className={`full-body-container ${useLlm ? 'llm-mode' : ''}`}>
-      {/* Search bar (always shown) */}
-      <div className="top-text">
-        <h1 className="app-title">POURfect</h1>
-        <div className="input-box" onClick={() => document.getElementById('search-input')?.focus()}>
-          <img src={SearchIcon} alt="search" />
-          <input
-            id="search-input"
-            placeholder="Enter a dish, e.g. creamy mushroom risotto"
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-        </div>
-      </div>
+      <div className="background-accent accent-one" aria-hidden="true" />
+      <div className="background-accent accent-two" aria-hidden="true" />
 
-      {/* Search results (always shown) */}
-      <div id="answer-box">
-        {results.map((wine, index) => (
-          <div key={index} className="episode-item">
-            <h3 className="episode-title">{wine.title}</h3>
+      <main className="page-shell">
+        <section className="hero-section">
+          <h1 className="app-title">
+            POURfect <span className="title-accent" aria-hidden="true">🍷</span>
+          </h1>
+          <p className="hero-subtitle">Find the perfect wine pairing for your meal</p>
 
-            <p className="episode-desc">
-              <strong>Variety:</strong> {wine.variety ?? 'N/A'}
-              &nbsp;|&nbsp;
-              <strong>Winery:</strong> {wine.winery ?? 'N/A'}
-            </p>
+          <form className="search-form" onSubmit={onSearchSubmit}>
+            <input
+              id="search-input"
+              className="search-input"
+              placeholder="Enter a dish, e.g. pizza, steak, lobster"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              autoComplete="off"
+            />
+            <button type="submit" className="search-button">Search</button>
+          </form>
 
-            <p className="episode-desc">
-              <strong>Price:</strong> {wine.price != null ? `$${wine.price}` : 'N/A'}
-            </p>
-
-            {wine.points != null && (
-              <p className="episode-desc">
-                <strong>Points:</strong> {wine.points}
-              </p>
-            )}
-
-            {wine.country && (
-              <p className="episode-desc">
-                <strong>Country:</strong> {wine.country}
-              </p>
-            )}
-
-            <p className="episode-desc">
-              <strong>Description:</strong> {wine.description ?? 'No description available.'}
-            </p>
-
-            {typeof wine.similarity === 'number' && (
-              <p className="episode-rating">
-                Similarity: {(wine.similarity * 100).toFixed(1)}%
-              </p>
-            )}
+          <div className="chip-row" aria-label="Example meal searches">
+            {sampleMeals.map((meal) => (
+              <button
+                key={meal}
+                type="button"
+                className="meal-chip"
+                onClick={() => onChipClick(meal)}
+              >
+                {meal}
+              </button>
+            ))}
           </div>
-        ))}
-      </div>
+        </section>
 
-      {/* Chat (only when USE_LLM = True in routes.py) */}
-      {useLlm && <Chat onSearchTerm={handleSearch} />}
+        {!hasSearched && (
+          <section className="empty-state">
+            <p className="empty-heading">Start with a simple meal search</p>
+            <p className="empty-copy">
+              Enter a dish and POURfect will return wine matches ranked by similarity and pairing relevance.
+            </p>
+            <p className="empty-note">Tip: best results usually come from simple meal names.</p>
+          </section>
+        )}
+
+        {hasSearched && (
+          <section className="results-section" aria-live="polite">
+            <div className="results-divider" />
+            <div id="answer-box">
+              {results.map((wine, index) => (
+                <article key={`${wine.title}-${index}`} className="result-card">
+                  <div className="card-top-row">
+                    <h2 className="wine-name">{wine.title}</h2>
+                    {typeof wine.similarity === 'number' && (
+                      <span className="match-badge">{(wine.similarity * 100).toFixed(1)}% Match</span>
+                    )}
+                  </div>
+
+                  <p className="wine-subline">
+                    <span>{wine.variety ?? 'Variety unavailable'}</span>
+                    <span className="dot-separator" aria-hidden="true">•</span>
+                    <span>{wine.winery ?? 'Winery unavailable'}</span>
+                  </p>
+
+                  <div className="meta-row">
+                    <span className="meta-chip">Price: {wine.price != null ? `$${wine.price}` : 'N/A'}</span>
+                    {wine.points != null && <span className="meta-chip">Points: {wine.points}</span>}
+                    {wine.country && <span className="meta-chip">Country: {wine.country}</span>}
+                  </div>
+
+                  <p className="wine-description">
+                    {wine.description ?? 'No description available.'}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {useLlm && (
+          <section className="chat-section">
+            <Chat onSearchTerm={handleSearch} />
+          </section>
+        )}
+      </main>
     </div>
   )
 }
