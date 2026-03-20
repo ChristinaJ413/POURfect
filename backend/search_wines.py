@@ -9,8 +9,9 @@
 import pandas as pd
 from pathlib import Path
 import pickle
-from scipy.sparse import load_npz
+from scipy.sparse import load_npz, save_npz
 from sklearn.metrics.pairwise import cosine_similarity
+from backend.build_tfidf import load_dataset, create_document, build_tfidf
 
 #DATA_DIR = Path("backend/data")
 BASE_DIR = Path(__file__).resolve().parent
@@ -29,16 +30,38 @@ def load_resources():
 
   if _df is not None and _X is not None and _vectorizer is not None:
     return _df, _X, _vectorizer
-
-  df = pd.read_csv(DATA_DIR / "cleaned_wine_reviews.csv")
   
-  X = load_npz(DATA_DIR / "tfidf_matrix.npz")
+  csv_path = DATA_DIR / "cleaned_wine_reviews.csv"
+  matrix_path = DATA_DIR / "tfidf_matrix.npz"
+  vectorizer_path = DATA_DIR / "tfidf_vectorizer.pkl"
 
-  with open(DATA_DIR / "tfidf_vectorizer.pkl", "rb") as f:
-    vectorizer = pickle.load(f)
+  if matrix_path.exists() and vectorizer_path.exists() and csv_path.exists():
+    print("Loading resources from disk...")
 
+    df = pd.read_csv(csv_path)
+    X = load_npz(matrix_path)
+
+    with open(vectorizer_path, "rb") as f:
+      vectorizer = pickle.load(f)
+
+    print("Resources loaded successfully.")
+
+  else:
+    print("Resources not found on disk. Building from dataset...")
+    df = load_dataset()
+    df = create_document(df)
+
+    vectorizer, X = build_tfidf(df)
+
+    # Save resources to disk for future use
+    save_npz(matrix_path, X)
+
+    with open(vectorizer_path, "wb") as f:
+      pickle.dump(vectorizer, f)
+
+    print("Resources built and saved successfully.")
+  
   _df, _X, _vectorizer = df, X, vectorizer
-  print("Resources loaded successfully.")
 
   return df, X, vectorizer
 

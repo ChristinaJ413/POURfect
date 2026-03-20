@@ -12,7 +12,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.sparse import save_npz
 import pickle
 
-DATA_DIR = Path("backend/data")
+#DATA_DIR = Path("backend/data")
+DATA_DIR = Path(__file__).resolve().parent / "data"
 
 def load_dataset():
   path = DATA_DIR / "cleaned_wine_reviews.csv"
