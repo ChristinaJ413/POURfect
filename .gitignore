@@ -29,7 +29,5 @@ package-lock.json
 .env
 
 # data
-backend/data/*.csv
-!backend/data/cleaned_wine_reviews.csv
 backend/data/*.npz
 backend/data/*.pklbackend/data/
