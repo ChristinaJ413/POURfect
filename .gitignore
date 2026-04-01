@@ -31,3 +31,5 @@ package-lock.json
 # data
 backend/data/*.npz
 backend/data/*.pklbackend/data/
+*.npy
+*.pkl
