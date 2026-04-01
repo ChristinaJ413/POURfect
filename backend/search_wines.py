@@ -83,13 +83,18 @@ def search_wines(query, top_k=5, top_dims=10):
   suitable for JSON serialization.
   """
   if not query or not query.strip():
-    return []
+    return {
+      "results": [],
+      "latent_dimensions": []
+    }
 
   df, X, vectorizer, svd = load_resources()
 
   query_vec = vectorizer.transform([query])
   query_latent = svd.transform(query_vec)
   scores = cosine_similarity(query_latent, X)[0]
+
+  query_latent_1d = query_latent[0]
 
   top_indices = scores.argsort()[-top_k:][::-1]
 
@@ -109,13 +114,13 @@ def search_wines(query, top_k=5, top_dims=10):
         "similarity": getattr(row, "similarity", None),
     })
 
-  top_dim_indices = np.argsort(np.abs(query_latent))[-top_dims:][::-1]
+  top_dim_indices = np.argsort(np.abs(query_latent_1d))[-top_dims:][::-1]
 
   latent_dimensions = []
   for idx in top_dim_indices:
     latent_dimensions.append({
       "dimension": int(idx + 1),
-      "value": float(query_latent[idx])
+      "value": float(query_latent_1d[idx])
     })
 
   return {
@@ -148,8 +153,9 @@ def main():
   """
   load_resources()
   query = input("Enter a food or meal description: ")
-  results = search_wines(query)
-  display_results(results)
+  data = search_wines(query)
+  display_results(data["results"])
+  print("Latent dimensions:", data["latent_dimensions"])
 
 
 if __name__ == "__main__":
