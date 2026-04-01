@@ -7,9 +7,9 @@
 # guidance with the pipeline of the application and getting started with the code.
 
 import pandas as pd
+import numpy as np
 from pathlib import Path
 import pickle
-from scipy.sparse import load_npz, save_npz
 from sklearn.metrics.pairwise import cosine_similarity
 from backend.build_tfidf import load_dataset, create_document, build_tfidf, apply_svd
 
@@ -33,7 +33,7 @@ def load_resources():
     return _df, _X, _vectorizer, _svd
   
   csv_path = DATA_DIR / "cleaned_wine_reviews.csv"
-  matrix_path = DATA_DIR / "tfidf_svd_matrix.npz"
+  matrix_path = DATA_DIR / "tfidf_svd_matrix.npy"
   vectorizer_path = DATA_DIR / "tfidf_vectorizer.pkl"
   svd_path = DATA_DIR / "svd_model.pkl"
 
@@ -41,7 +41,7 @@ def load_resources():
     print("Loading resources from disk...")
 
     df = pd.read_csv(csv_path)
-    X = load_npz(matrix_path)
+    X = np.load(matrix_path)
 
     with open(vectorizer_path, "rb") as f:
       vectorizer = pickle.load(f)
@@ -60,7 +60,7 @@ def load_resources():
     svd, X_reduced = apply_svd(X)
 
     # Save resources to disk for future use
-    save_npz(matrix_path, X_reduced)
+    np.save(matrix_path, X_reduced)
 
     with open(vectorizer_path, "wb") as f:
       pickle.dump(vectorizer, f)

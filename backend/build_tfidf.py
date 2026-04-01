@@ -7,10 +7,10 @@
 # guidance with the pipeline of the application and getting started with the code.
 
 import pandas as pd
+import numpy as np
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
-from scipy.sparse import save_npz
 import pickle
 
 #DATA_DIR = Path("backend/data")
@@ -74,11 +74,11 @@ def save_index(vectorizer, svd, X):
   Save the TF-IDF vectorizer and vectorizer.
   """
   
-  matrix_path = DATA_DIR / "tfidf_svd_matrix.npz"
+  matrix_path = DATA_DIR / "tfidf_svd_matrix.npy"
   vectorizer_path = DATA_DIR / "tfidf_vectorizer.pkl"
   svd_path = DATA_DIR / "svd_model.pkl"
 
-  save_npz(matrix_path, X)
+  np.save(matrix_path, X)
 
   with open(vectorizer_path, "wb") as f:
     pickle.dump(vectorizer, f)
