@@ -88,7 +88,7 @@ def search_wines(query, top_k=5, top_dims=10):
   df, X, vectorizer, svd = load_resources()
 
   query_vec = vectorizer.transform([query])
-  query_latent = svd.transform(query_vec)[0]
+  query_latent = svd.transform(query_vec)
   scores = cosine_similarity(query_latent, X)[0]
 
   top_indices = scores.argsort()[-top_k:][::-1]
