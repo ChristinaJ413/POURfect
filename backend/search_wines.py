@@ -11,7 +11,7 @@ from pathlib import Path
 import pickle
 from scipy.sparse import load_npz, save_npz
 from sklearn.metrics.pairwise import cosine_similarity
-from backend.build_tfidf import load_dataset, create_document, build_tfidf
+from backend.build_tfidf import load_dataset, create_document, build_tfidf, apply_svd
 
 #DATA_DIR = Path("backend/data")
 BASE_DIR = Path(__file__).resolve().parent
@@ -20,22 +20,24 @@ DATA_DIR = BASE_DIR / "data"
 _df = None
 _X = None
 _vectorizer = None
+_svd = None
 
 
 def load_resources():
   """
-  Load dataset, TF-IDF matrix, and vectorizer (cached).
+  Load dataset, SVD-reduced TF-IDF matrix, vectorizer, and SVD model (cached).
   """
-  global _df, _X, _vectorizer
+  global _df, _X, _vectorizer, _svd
 
-  if _df is not None and _X is not None and _vectorizer is not None:
-    return _df, _X, _vectorizer
+  if _df is not None and _X is not None and _vectorizer is not None and _svd is not None:
+    return _df, _X, _vectorizer, _svd
   
   csv_path = DATA_DIR / "cleaned_wine_reviews.csv"
-  matrix_path = DATA_DIR / "tfidf_matrix.npz"
+  matrix_path = DATA_DIR / "tfidf_svd_matrix.npz"
   vectorizer_path = DATA_DIR / "tfidf_vectorizer.pkl"
+  svd_path = DATA_DIR / "svd_model.pkl"
 
-  if matrix_path.exists() and vectorizer_path.exists() and csv_path.exists():
+  if matrix_path.exists() and vectorizer_path.exists() and csv_path.exists() and svd_path.exists():
     print("Loading resources from disk...")
 
     df = pd.read_csv(csv_path)
@@ -43,6 +45,9 @@ def load_resources():
 
     with open(vectorizer_path, "rb") as f:
       vectorizer = pickle.load(f)
+
+    with open(svd_path, "rb") as f:
+      svd = pickle.load(f)
 
     print("Resources loaded successfully.")
 
@@ -52,18 +57,24 @@ def load_resources():
     df = create_document(df)
 
     vectorizer, X = build_tfidf(df)
+    svd, X_reduced = apply_svd(X)
 
     # Save resources to disk for future use
-    save_npz(matrix_path, X)
+    save_npz(matrix_path, X_reduced)
 
     with open(vectorizer_path, "wb") as f:
       pickle.dump(vectorizer, f)
+    
+    with open(svd_path, "wb") as f:
+      pickle.dump(svd, f)
 
     print("Resources built and saved successfully.")
-  
-  _df, _X, _vectorizer = df, X, vectorizer
 
-  return df, X, vectorizer
+    X = X_reduced
+  
+  _df, _X, _vectorizer, _svd = df, X, vectorizer, svd
+
+  return df, X, vectorizer, svd
 
 
 def search_wines(query, top_k=5):
@@ -74,10 +85,10 @@ def search_wines(query, top_k=5):
   if not query or not query.strip():
     return []
 
-  df, X, vectorizer = load_resources()
+  df, X, vectorizer, svd = load_resources()
 
   query_vec = vectorizer.transform([query])
-
+  query_vec = svd.transform(query_vec)
   scores = cosine_similarity(query_vec, X)[0]
 
   top_indices = scores.argsort()[-top_k:][::-1]

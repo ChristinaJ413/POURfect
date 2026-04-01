@@ -9,6 +9,7 @@
 import pandas as pd
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import TruncatedSVD
 from scipy.sparse import save_npz
 import pickle
 
@@ -57,20 +58,35 @@ def build_tfidf(df):
 
   return vectorizer, X
 
-def save_index(vectorizer, X):
+def apply_svd(X, n_components=300):
+    """
+    Apply Truncated SVD to reduce dimensionality of TF-IDF matrix.
+    """
+    svd = TruncatedSVD(n_components=n_components, random_state=42)
+    X_reduced = svd.fit_transform(X)
+
+    print("SVD reduced matrix shape:", X_reduced.shape)
+
+    return svd, X_reduced
+
+def save_index(vectorizer, svd, X):
   """
   Save the TF-IDF vectorizer and vectorizer.
   """
   
-  matrix_path = DATA_DIR / "tfidf_matrix.npz"
+  matrix_path = DATA_DIR / "tfidf_svd_matrix.npz"
   vectorizer_path = DATA_DIR / "tfidf_vectorizer.pkl"
+  svd_path = DATA_DIR / "svd_model.pkl"
 
   save_npz(matrix_path, X)
 
   with open(vectorizer_path, "wb") as f:
     pickle.dump(vectorizer, f)
 
-  print(f"TF-IDF matrix saved to {matrix_path}")
+  with open(svd_path, "wb") as f:
+    pickle.dump(svd, f)
+
+  print(f"TF-IDF matrix + SVD index saved to {matrix_path}")
 
 def main():
   
@@ -79,8 +95,9 @@ def main():
   df = create_document(df)
 
   vectorizer, X = build_tfidf(df)
+  svd, X_reduced = apply_svd(X)
 
-  save_index(vectorizer, X)
+  save_index(vectorizer, svd, X_reduced)
 
 if __name__ == "__main__":
   main()
