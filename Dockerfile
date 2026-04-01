@@ -35,4 +35,4 @@ COPY --from=frontend-build /app/frontend/dist $CONTAINER_HOME/frontend/dist
 # added
 COPY backend/ $CONTAINER_HOME/backend/
 
-CMD ["python", "-m", "gunicorn", "--chdir", "src", "app:app", "--bind", "0.0.0.0:5000", "--log-level", "debug"]
+CMD ["sh", "-c", "python -m gunicorn --chdir src app:app --bind 0.0.0.0:${PORT:-5000} --log-level debug"]
