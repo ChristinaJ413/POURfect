@@ -55,9 +55,13 @@ def register_routes(app):
     def wine_search():
         query = request.args.get("query", "")
         if not query or not query.strip():
-            return jsonify([])
-        results = backend_search_wines(query, top_k=5)
-        return jsonify(results)
+            return jsonify({
+                "results": [],
+                "latent_dimensions": []
+            })
+        
+        data = backend_search_wines(query, top_k=5, top_dims=10)
+        return jsonify(data)
 
     if USE_LLM:
         from llm_routes import register_chat_route

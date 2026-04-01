@@ -77,7 +77,7 @@ def load_resources():
   return df, X, vectorizer, svd
 
 
-def search_wines(query, top_k=5):
+def search_wines(query, top_k=5, top_dims=10):
   """
   Search for wines matching the food query and return a list of dicts
   suitable for JSON serialization.
@@ -88,8 +88,8 @@ def search_wines(query, top_k=5):
   df, X, vectorizer, svd = load_resources()
 
   query_vec = vectorizer.transform([query])
-  query_vec = svd.transform(query_vec)
-  scores = cosine_similarity(query_vec, X)[0]
+  query_latent = svd.transform(query_vec)[0]
+  scores = cosine_similarity(query_latent, X)[0]
 
   top_indices = scores.argsort()[-top_k:][::-1]
 
@@ -109,7 +109,19 @@ def search_wines(query, top_k=5):
         "similarity": getattr(row, "similarity", None),
     })
 
-  return records
+  top_dim_indices = np.argsort(np.abs(query_latent))[-top_dims:][::-1]
+
+  latent_dimensions = []
+  for idx in top_dim_indices:
+    latent_dimensions.append({
+      "dimension": int(idx + 1),
+      "value": float(query_latent[idx])
+    })
+
+  return {
+    "results": records,
+    "latent_dimensions": latent_dimensions
+  }
 
 def display_results(results):
   """
