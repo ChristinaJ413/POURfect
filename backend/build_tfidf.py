@@ -32,8 +32,8 @@ def create_document(df):
     df["description"].fillna("") + " " +
     df["variety"].fillna("") + " " +
     df["designation"].fillna("") + " " +
-    df["title"].fillna("") + " " +
-    df["winery"].fillna("") + " " +
+    # df["title"].fillna("") + " " +
+    # df["winery"].fillna("") + " " +
     df["country"].fillna("") + " " +
     df["province"].fillna("") + " " +
     df["region_1"].fillna("")
