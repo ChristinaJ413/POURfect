@@ -49,3 +49,8 @@ helpers/
 json_template/
 templates/
 static/
+
+!backend/data/svd_model.pkl
+!backend/data/tfidf_svd_matrix.npy
+!backend/data/tfidf_vectorizer.pkl
+!backend/data/cleaned_wine_reviews.csv
