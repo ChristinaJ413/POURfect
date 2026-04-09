@@ -23,58 +23,92 @@ _vectorizer = None
 _svd = None
 
 
-def load_resources():
-  """
-  Load dataset, SVD-reduced TF-IDF matrix, vectorizer, and SVD model (cached).
-  """
-  global _df, _X, _vectorizer, _svd
+#  def load_resources():
+#   """
+#   Load dataset, SVD-reduced TF-IDF matrix, vectorizer, and SVD model (cached).
+#   """
+#   global _df, _X, _vectorizer, _svd
 
-  if _df is not None and _X is not None and _vectorizer is not None and _svd is not None:
-    return _df, _X, _vectorizer, _svd
+#   if _df is not None and _X is not None and _vectorizer is not None and _svd is not None:
+#     return _df, _X, _vectorizer, _svd
   
-  csv_path = DATA_DIR / "cleaned_wine_reviews.csv"
-  matrix_path = DATA_DIR / "tfidf_svd_matrix.npy"
-  vectorizer_path = DATA_DIR / "tfidf_vectorizer.pkl"
-  svd_path = DATA_DIR / "svd_model.pkl"
+#   csv_path = DATA_DIR / "cleaned_wine_reviews.csv"
+#   matrix_path = DATA_DIR / "tfidf_svd_matrix.npy"
+#   vectorizer_path = DATA_DIR / "tfidf_vectorizer.pkl"
+#   svd_path = DATA_DIR / "svd_model.pkl"
 
-  if matrix_path.exists() and vectorizer_path.exists() and csv_path.exists() and svd_path.exists():
+#   if matrix_path.exists() and vectorizer_path.exists() and csv_path.exists() and svd_path.exists():
+#     print("Loading resources from disk...")
+
+#     df = pd.read_csv(csv_path)
+#     X = np.load(matrix_path)
+
+#     with open(vectorizer_path, "rb") as f:
+#       vectorizer = pickle.load(f)
+
+#     with open(svd_path, "rb") as f:
+#       svd = pickle.load(f)
+
+#     print("Resources loaded successfully.")
+
+#   else:
+#     print("Resources not found on disk. Building from dataset...")
+#     df = load_dataset()
+#     df = create_document(df)
+
+#     vectorizer, X = build_tfidf(df)
+#     svd, X_reduced = apply_svd(X)
+
+#     # Save resources to disk for future use
+#     np.save(matrix_path, X_reduced)
+
+#     with open(vectorizer_path, "wb") as f:
+#       pickle.dump(vectorizer, f)
+    
+#     with open(svd_path, "wb") as f:
+#       pickle.dump(svd, f)
+
+#     print("Resources built and saved successfully.")
+
+#     X = X_reduced
+  
+#   _df, _X, _vectorizer, _svd = df, X, vectorizer, svd
+
+#   return df, X, vectorizer, svd 
+
+def load_resources():
+    global _df, _X, _vectorizer, _svd
+
+    if _df is not None:
+        return _df, _X, _vectorizer, _svd
+
     print("Loading resources from disk...")
+
+    csv_path = DATA_DIR / "cleaned_wine_reviews.csv"
+    matrix_path = DATA_DIR / "tfidf_svd_matrix.npy"
+    vectorizer_path = DATA_DIR / "tfidf_vectorizer.pkl"
+    svd_path = DATA_DIR / "svd_model.pkl"
+
+    # Hard fail if missing (important for debugging)
+    assert csv_path.exists(), "Missing CSV"
+    assert matrix_path.exists(), "Missing matrix"
+    assert vectorizer_path.exists(), "Missing vectorizer"
+    assert svd_path.exists(), "Missing SVD model"
 
     df = pd.read_csv(csv_path)
     X = np.load(matrix_path)
 
     with open(vectorizer_path, "rb") as f:
-      vectorizer = pickle.load(f)
+        vectorizer = pickle.load(f)
 
     with open(svd_path, "rb") as f:
-      svd = pickle.load(f)
+        svd = pickle.load(f)
 
-    print("Resources loaded successfully.")
+    print("Resources loaded.")
 
-  else:
-    print("Resources not found on disk. Building from dataset...")
-    df = load_dataset()
-    df = create_document(df)
+    _df, _X, _vectorizer, _svd = df, X, vectorizer, svd
 
-    vectorizer, X = build_tfidf(df)
-    svd, X_reduced = apply_svd(X)
-
-    # Save resources to disk for future use
-    np.save(matrix_path, X_reduced)
-
-    with open(vectorizer_path, "wb") as f:
-      pickle.dump(vectorizer, f)
-    
-    with open(svd_path, "wb") as f:
-      pickle.dump(svd, f)
-
-    print("Resources built and saved successfully.")
-
-    X = X_reduced
-  
-  _df, _X, _vectorizer, _svd = df, X, vectorizer, svd
-
-  return df, X, vectorizer, svd
+    return df, X, vectorizer, svd
 
 
 def search_wines(query, top_k=5, top_dims=10):
