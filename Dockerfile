@@ -39,6 +39,8 @@ COPY --from=frontend-build /app/frontend/dist $CONTAINER_HOME/frontend/dist
 COPY backend/ $CONTAINER_HOME/backend/
 COPY backend/data/svd_model.pkl $CONTAINER_HOME/backend/data/svd_model.pkl
 COPY backend/data/tfidf_vectorizer.pkl $CONTAINER_HOME/backend/data/tfidf_vectorizer.pkl
+COPY backend/data/tfidf_svd_matrix.npz $CONTAINER_HOME/backend/data/tfidf_svd_matrix.npz
+
 
 
 #CMD ["python", "-m", "gunicorn", "--chdir", "src", "app:app", "--bind", "0.0.0.0:5001", "--log-level", "debug"]

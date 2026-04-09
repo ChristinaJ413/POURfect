@@ -58,7 +58,7 @@ def build_tfidf(df):
 
   return vectorizer, X
 
-def apply_svd(X, n_components=300):
+def apply_svd(X, n_components=100):
     """
     Apply Truncated SVD to reduce dimensionality of TF-IDF matrix.
     """
