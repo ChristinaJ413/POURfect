@@ -82,21 +82,20 @@ def load_resources():
     if _df is not None:
         return _df, _X, _vectorizer, _svd
 
-    print("Loading resources from disk...")
+    print("Loading resources and recomputing matrix...")
 
     csv_path = DATA_DIR / "cleaned_wine_reviews.csv"
-    matrix_path = DATA_DIR / "tfidf_svd_matrix.npy"
     vectorizer_path = DATA_DIR / "tfidf_vectorizer.pkl"
     svd_path = DATA_DIR / "svd_model.pkl"
 
-    # Hard fail if missing (important for debugging)
     assert csv_path.exists(), "Missing CSV"
-    assert matrix_path.exists(), "Missing matrix"
     assert vectorizer_path.exists(), "Missing vectorizer"
     assert svd_path.exists(), "Missing SVD model"
 
     df = pd.read_csv(csv_path)
-    X = np.load(matrix_path)
+
+    # rebuild text exactly the same way
+    df = create_document(df)
 
     with open(vectorizer_path, "rb") as f:
         vectorizer = pickle.load(f)
@@ -104,7 +103,11 @@ def load_resources():
     with open(svd_path, "rb") as f:
         svd = pickle.load(f)
 
-    print("Resources loaded.")
+    # recompute matrix instead of loading
+    X_tfidf = vectorizer.transform(df["combined_text"])
+    X = svd.transform(X_tfidf)
+
+    print("Matrix recomputed.")
 
     _df, _X, _vectorizer, _svd = df, X, vectorizer, svd
 
