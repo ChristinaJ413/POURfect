@@ -39,7 +39,7 @@ COPY --from=frontend-build /app/frontend/dist $CONTAINER_HOME/frontend/dist
 COPY backend/ $CONTAINER_HOME/backend/
 COPY backend/data/svd_model.pkl $CONTAINER_HOME/backend/data/svd_model.pkl
 COPY backend/data/tfidf_vectorizer.pkl $CONTAINER_HOME/backend/data/tfidf_vectorizer.pkl
-COPY backend/data/tfidf_svd_matrix.npz $CONTAINER_HOME/backend/data/tfidf_svd_matrix.npz
+COPY backend/data/tfidf_svd_matrix.npy $CONTAINER_HOME/backend/data/tfidf_svd_matrix.npy
 
 
 
