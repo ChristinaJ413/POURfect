@@ -29,6 +29,9 @@ ENV PYTHONPATH=/var/www
 WORKDIR $CONTAINER_HOME
 
 COPY --from=python-deps /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+# new
+COPY --from=python-deps /usr/local/bin /usr/local/bin 
+
 COPY src/ $CONTAINER_HOME/src/
 COPY --from=frontend-build /app/frontend/dist $CONTAINER_HOME/frontend/dist
 
@@ -36,4 +39,5 @@ COPY --from=frontend-build /app/frontend/dist $CONTAINER_HOME/frontend/dist
 COPY backend/ $CONTAINER_HOME/backend/
 
 #CMD ["python", "-m", "gunicorn", "--chdir", "src", "app:app", "--bind", "0.0.0.0:5001", "--log-level", "debug"]
+# changed
 CMD ["gunicorn", "src.app:app", "--bind", "0.0.0.0:5001", "--log-level", "debug"]
