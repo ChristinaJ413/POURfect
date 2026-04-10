@@ -11,8 +11,7 @@ import numpy as np
 from pathlib import Path
 import pickle
 from sklearn.metrics.pairwise import cosine_similarity
-#from backend.build_tfidf import load_dataset, create_document, build_tfidf, apply_svd
-from sentence_transformers import SentenceTransformer
+from backend.build_tfidf import load_dataset, create_document, build_tfidf, apply_svd
 
 #DATA_DIR = Path("backend/data")
 BASE_DIR = Path(__file__).resolve().parent
@@ -23,14 +22,65 @@ _X = None
 _vectorizer = None
 _svd = None
 
-_model = None
-_doc_embeddings = None
+
+#  def load_resources():
+#   """
+#   Load dataset, SVD-reduced TF-IDF matrix, vectorizer, and SVD model (cached).
+#   """
+#   global _df, _X, _vectorizer, _svd
+
+#   if _df is not None and _X is not None and _vectorizer is not None and _svd is not None:
+#     return _df, _X, _vectorizer, _svd
+  
+#   csv_path = DATA_DIR / "cleaned_wine_reviews.csv"
+#   matrix_path = DATA_DIR / "tfidf_svd_matrix.npy"
+#   vectorizer_path = DATA_DIR / "tfidf_vectorizer.pkl"
+#   svd_path = DATA_DIR / "svd_model.pkl"
+
+#   if matrix_path.exists() and vectorizer_path.exists() and csv_path.exists() and svd_path.exists():
+#     print("Loading resources from disk...")
+
+#     df = pd.read_csv(csv_path)
+#     X = np.load(matrix_path)
+
+#     with open(vectorizer_path, "rb") as f:
+#       vectorizer = pickle.load(f)
+
+#     with open(svd_path, "rb") as f:
+#       svd = pickle.load(f)
+
+#     print("Resources loaded successfully.")
+
+#   else:
+#     print("Resources not found on disk. Building from dataset...")
+#     df = load_dataset()
+#     df = create_document(df)
+
+#     vectorizer, X = build_tfidf(df)
+#     svd, X_reduced = apply_svd(X)
+
+#     # Save resources to disk for future use
+#     np.save(matrix_path, X_reduced)
+
+#     with open(vectorizer_path, "wb") as f:
+#       pickle.dump(vectorizer, f)
+    
+#     with open(svd_path, "wb") as f:
+#       pickle.dump(svd, f)
+
+#     print("Resources built and saved successfully.")
+
+#     X = X_reduced
+  
+#   _df, _X, _vectorizer, _svd = df, X, vectorizer, svd
+
+#   return df, X, vectorizer, svd 
 
 def load_resources():
-    global _df, _X, _vectorizer, _svd, _model, _doc_embeddings
+    global _df, _X, _vectorizer, _svd
 
     if _df is not None:
-        return _df, _X, _vectorizer, _svd, _model, _doc_embeddings
+        return _df, _X, _vectorizer, _svd
 
     print("Loading resources and recomputing matrix...")
 
@@ -57,16 +107,7 @@ def load_resources():
 
     _df, _X, _vectorizer, _svd = df, X, vectorizer, svd
 
-    if _model is None:
-       _model = SentenceTransformer('all-MiniLM-L6-v2')
-
-    if _doc_embeddings is None:
-      _doc_embeddings = _model.encode(
-        df["description"].fillna("").tolist(),
-        show_progress_bar=True
-    )
-
-    return df, X, vectorizer, svd, _model, _doc_embeddings
+    return df, X, vectorizer, svd
 
 
 def search_wines(query, top_k=5, top_dims=10):
@@ -80,18 +121,11 @@ def search_wines(query, top_k=5, top_dims=10):
       "latent_dimensions": []
     }
 
-  df, X, vectorizer, svd, model, doc_embeddings = load_resources()
+  df, X, vectorizer, svd = load_resources()
 
   query_vec = vectorizer.transform([query])
   query_latent = svd.transform(query_vec)
   scores = cosine_similarity(query_latent, X)[0]
-
-  # sentence embedding
-  query_embed = model.encode([query])
-  embed_scores = cosine_similarity(query_embed, doc_embeddings)[0]
-
-  alpha = 0.6
-  scores = alpha * scores + (1 - alpha) * embed_scores
 
   query_latent_1d = query_latent[0]
 
