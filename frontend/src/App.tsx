@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import { WineResult } from './types'
 import Chat from './Chat'
-import LatentChart from './LatentChart'
+import LatentComparisonCharts from './LatentChart'
 
 function App(): JSX.Element {
   const [useLlm, setUseLlm] = useState<boolean | null>(null)
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [results, setResults] = useState<WineResult[]>([])
   const [latentDimensions, setLatentDimensions] = useState<any[]>([])
+  const [comparisons, setComparisons] = useState<any[]>([])
   const [hasSearched, setHasSearched] = useState<boolean>(false)
   const sampleMeals = ['Steak', 'Pizza', 'Pasta', 'Burger', 'Lobster']
 
@@ -39,6 +40,7 @@ function App(): JSX.Element {
       
       setResults(data.results || [])
       setLatentDimensions(data.latent_dimensions || [])
+      setComparisons(data.comparisons || [])
 
     } catch (error) {
       console.error('Search error:', error)
@@ -110,9 +112,9 @@ function App(): JSX.Element {
           <section className="results-section" aria-live="polite">
             <div className="results-divider" />
             <div id="answer-box">
-              {latentDimensions.length > 0 && (
-                <LatentChart data={latentDimensions} />
-              )}
+            {comparisons.length > 0 && (
+              <LatentComparisonCharts comparisons={comparisons} />
+            )}
               {results.map((wine, index) => (
                 <article key={`${wine.title}-${index}`} className="result-card">
                   <div className="card-top-row">
