@@ -8,7 +8,7 @@ function App(): JSX.Element {
   const [useLlm, setUseLlm] = useState<boolean | null>(null)
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [results, setResults] = useState<WineResult[]>([])
-  const [latentDimensions, setLatentDimensions] = useState<any[]>([])
+  const [_latentDimensions, setLatentDimensions] = useState<any[]>([])
   const [comparisons, setComparisons] = useState<any[]>([])
   const [hasSearched, setHasSearched] = useState<boolean>(false)
   const sampleMeals = ['Steak', 'Pizza', 'Pasta', 'Burger', 'Lobster']
