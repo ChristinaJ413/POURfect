@@ -10,7 +10,7 @@ import {
   
   export default function LatentChart({ data }: { data: any[] }) {
     const chartData = data.map((d) => ({
-      name: `D${d.dimension}`,
+      name: (d.label || `D${d.dimension}`).slice(0, 25),
       value: d.value
     }));
   
@@ -20,7 +20,12 @@ import {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
+            <XAxis
+              dataKey="name"
+              angle={-20}
+              textAnchor="end"
+              interval={0}
+            />
             <YAxis />
             <Tooltip />
             <Bar dataKey="value" />

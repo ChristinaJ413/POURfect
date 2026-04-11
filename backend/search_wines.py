@@ -21,9 +21,26 @@ _df = None
 _X = None
 _vectorizer = None
 _svd = None
+_dim_labels = None
+
+def build_dimension_labels(vectorizer, svd, top_n=5):
+    """
+    Build human-readable labels for each latent dimension
+    using top contributing words.
+    """
+    terms = vectorizer.get_feature_names_out()
+    dim_labels = {}
+
+    for i, comp in enumerate(svd.components_):
+        top_indices = comp.argsort()[-top_n:][::-1]
+        top_words = [terms[j] for j in top_indices]
+
+        dim_labels[i] = top_words
+
+    return dim_labels
 
 def load_resources():
-    global _df, _X, _vectorizer, _svd
+    global _df, _X, _vectorizer, _svd, _dim_labels
 
     if _df is not None:
         return _df, _X, _vectorizer, _svd
@@ -52,9 +69,11 @@ def load_resources():
         X = np.load(f)
         X = normalize(X)
 
+    if _dim_labels is None:
+      _dim_labels = build_dimension_labels(vectorizer, svd)
     _df, _X, _vectorizer, _svd = df, X, vectorizer, svd
 
-    return df, X, vectorizer, svd
+    return df, X, vectorizer, svd, _dim_labels
 
 
 def search_wines(query, top_k=5, top_dims=10):
@@ -68,7 +87,7 @@ def search_wines(query, top_k=5, top_dims=10):
       "latent_dimensions": []
     }
 
-  df, X, vectorizer, svd = load_resources()
+  df, X, vectorizer, svd, dim_labels = load_resources()
 
   query_vec = vectorizer.transform([query])
   query_latent = svd.transform(query_vec)
@@ -101,7 +120,8 @@ def search_wines(query, top_k=5, top_dims=10):
   for idx in top_dim_indices:
     latent_dimensions.append({
       "dimension": int(idx + 1),
-      "value": float(query_latent_1d[idx])
+      "value": float(query_latent_1d[idx]),
+      "label": ", ".join(dim_labels.get(idx, [])[:3])
     })
 
   return {
