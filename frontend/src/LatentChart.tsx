@@ -32,9 +32,9 @@ export default function LatentComparisonCharts({ comparisons }: Props) {
 
   return (
     <div style={{ marginTop: "2rem" }}>
-      <h2>Why These Wines Were Chosen</h2>
+      <h2>Why This Wine Was Chosen</h2>
       <p style={{ marginBottom: "1.5rem" }}>
-        Each chart compares the query to one wine across the query’s strongest latent dimensions.
+        This chart compares the query to one wine across the query’s strongest latent dimensions.
       </p>
 
       {comparisons.map((comp, idx) => {
