@@ -2,15 +2,17 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import { WineResult } from './types'
 import Chat from './Chat'
-import LatentChart from './LatentChart'
+import LatentComparisonCharts from './LatentChart'
 
 function App(): JSX.Element {
   const [useLlm, setUseLlm] = useState<boolean | null>(null)
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [results, setResults] = useState<WineResult[]>([])
-  const [latentDimensions, setLatentDimensions] = useState<any[]>([])
+  const [_latentDimensions, setLatentDimensions] = useState<any[]>([])
+  const [comparisons, setComparisons] = useState<any[]>([])
   const [hasSearched, setHasSearched] = useState<boolean>(false)
   const sampleMeals = ['Steak', 'Pizza', 'Pasta', 'Burger', 'Lobster']
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetch('/api/config')
@@ -39,6 +41,7 @@ function App(): JSX.Element {
       
       setResults(data.results || [])
       setLatentDimensions(data.latent_dimensions || [])
+      setComparisons(data.comparisons || [])
 
     } catch (error) {
       console.error('Search error:', error)
@@ -110,35 +113,57 @@ function App(): JSX.Element {
           <section className="results-section" aria-live="polite">
             <div className="results-divider" />
             <div id="answer-box">
-              {latentDimensions.length > 0 && (
-                <LatentChart data={latentDimensions} />
-              )}
-              {results.map((wine, index) => (
-                <article key={`${wine.title}-${index}`} className="result-card">
-                  <div className="card-top-row">
-                    <h2 className="wine-name">{wine.title}</h2>
-                    {typeof wine.similarity === 'number' && (
-                      <span className="match-badge">{(wine.similarity * 100).toFixed(1)}% Match</span>
-                    )}
+            {results.map((wine, index) => (
+              <article
+                key={`${wine.title}-${index}`}
+                className="result-card"
+                onClick={() =>
+                  setSelectedIndex(selectedIndex === index ? null : index)
+                }
+                style={{
+                  cursor: "pointer"
+                }}
+              >
+                <div className="card-top-row">
+                  <h2 className="wine-name">{wine.title}</h2>
+                  {typeof wine.similarity === 'number' && (
+                    <span className="match-badge">
+                      {(wine.similarity * 100).toFixed(1)}% Match
+                    </span>
+                  )}
+                </div>
+
+                <p className="wine-subline">
+                  <span>{wine.variety ?? 'Variety unavailable'}</span>
+                  <span className="dot-separator">•</span>
+                  <span>{wine.winery ?? 'Winery unavailable'}</span>
+                </p>
+
+                <div className="meta-row">
+                  <span className="meta-chip">
+                    Price: {wine.price != null ? `$${wine.price}` : 'N/A'}
+                  </span>
+                  {wine.points != null && (
+                    <span className="meta-chip">Points: {wine.points}</span>
+                  )}
+                  {wine.country && (
+                    <span className="meta-chip">Country: {wine.country}</span>
+                  )}
+                </div>
+
+                <p className="wine-description">
+                  {wine.description ?? 'No description available.'}
+                </p>
+
+                {selectedIndex === index && comparisons[index] && (
+                  <div style={{ marginTop: "1rem" }}>
+                    <LatentComparisonCharts
+                      comparisons={[comparisons[index]]}
+                    />
                   </div>
-
-                  <p className="wine-subline">
-                    <span>{wine.variety ?? 'Variety unavailable'}</span>
-                    <span className="dot-separator" aria-hidden="true">•</span>
-                    <span>{wine.winery ?? 'Winery unavailable'}</span>
-                  </p>
-
-                  <div className="meta-row">
-                    <span className="meta-chip">Price: {wine.price != null ? `$${wine.price}` : 'N/A'}</span>
-                    {wine.points != null && <span className="meta-chip">Points: {wine.points}</span>}
-                    {wine.country && <span className="meta-chip">Country: {wine.country}</span>}
-                  </div>
-
-                  <p className="wine-description">
-                    {wine.description ?? 'No description available.'}
-                  </p>
-                </article>
-              ))}
+                )}
+              </article>
+            ))}
             </div>
           </section>
         )}
