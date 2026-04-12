@@ -61,22 +61,22 @@ export default function LatentComparisonCharts({ comparisons }: Props) {
               Similarity Score: {comp.similarity.toFixed(3)}
             </p>
 
-            <div style={{ width: "100%", height: 320 }}>
+            <div style={{ width: "100%", height: 500 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
+                <BarChart data={chartData} margin={{left:60, right:30, bottom:20}}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="name"
-                    angle={-20}
+                    angle={-45}
                     textAnchor="end"
                     interval={0}
-                    height={80}
+                    height={170}
                   />
                   <YAxis />
                   <Tooltip />
-                  <Legend />
+                  <Legend verticalAlign="bottom"/>
                   <Bar dataKey="query" name="Query" fill = "#8884d8" />
-                  <Bar dataKey="wine" name="Wine" fill = "#82caa9d"/>
+                  <Bar dataKey="wine" name="Wine" fill = "#82ca9d"/>
                 </BarChart>
               </ResponsiveContainer>
             </div>
