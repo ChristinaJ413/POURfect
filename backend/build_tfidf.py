@@ -8,13 +8,36 @@
 
 import pandas as pd
 import numpy as np
+import re
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 from sklearn.decomposition import TruncatedSVD
+from nltk.stem import PorterStemmer
 import pickle
 
 #DATA_DIR = Path("backend/data")
 DATA_DIR = Path(__file__).resolve().parent / "data"
+TOKEN_PATTERN = re.compile(r"[a-zA-Z]+")
+STEMMER = PorterStemmer()
+STEMMED_STOP_WORDS = {STEMMER.stem(word) for word in ENGLISH_STOP_WORDS}
+
+
+def stemmed_analyzer(text):
+  """
+  Lightweight analyzer:
+  - lowercase
+  - regex tokenization
+  - Porter stemming
+  - english stopword removal (in stemmed space)
+  """
+  if text is None:
+    return []
+
+  lowered = str(text).lower()
+  tokens = TOKEN_PATTERN.findall(lowered)
+  stemmed_tokens = [STEMMER.stem(token) for token in tokens]
+  return [token for token in stemmed_tokens if token not in STEMMED_STOP_WORDS]
 
 def load_dataset():
   path = DATA_DIR / "cleaned_wine_reviews.csv"
@@ -46,7 +69,9 @@ def build_tfidf(df):
   Build the TF-IDF vector representation.
   """
   vectorizer = TfidfVectorizer(
-    stop_words="english",
+    analyzer=stemmed_analyzer,
+    ngram_range=(1, 2),
+    stop_words=None,
     max_features=20000,
     min_df = 5,
     max_df = 0.8
