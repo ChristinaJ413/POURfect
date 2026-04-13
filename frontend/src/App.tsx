@@ -1,18 +1,41 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
-import { WineResult } from './types'
+import { Comparison, WineResult } from './types'
 import Chat from './Chat'
-import LatentComparisonCharts from './LatentChart'
+import FilterBar, { FilterValues } from './FilterBar'
+import PaginationControls from './PaginationControls'
+import WarningBanner from './WarningBanner'
+import WineCard from './WineCard'
+
+const RESULTS_PER_PAGE = 6
+const WEAK_MATCH_THRESHOLD = 0.15
+
+const toFiniteNumber = (value: unknown): number | null => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
 
 function App(): JSX.Element {
   const [useLlm, setUseLlm] = useState<boolean | null>(null)
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [results, setResults] = useState<WineResult[]>([])
-  const [_latentDimensions, setLatentDimensions] = useState<any[]>([])
-  const [comparisons, setComparisons] = useState<any[]>([])
+  const [comparisons, setComparisons] = useState<Comparison[]>([])
   const [hasSearched, setHasSearched] = useState<boolean>(false)
   const sampleMeals = ['Steak', 'Pizza', 'Pasta', 'Burger', 'Lobster']
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [filters, setFilters] = useState<FilterValues>({
+    priceMin: '',
+    priceMax: '',
+    pointsMin: '',
+    pointsMax: '',
+    country: 'All',
+    variety: 'All',
+  })
 
   useEffect(() => {
     fetch('/api/config')
@@ -27,6 +50,9 @@ function App(): JSX.Element {
 
     if (query === '') {
       setResults([])
+      setComparisons([])
+      setCurrentPage(1)
+      setSelectedIndex(null)
       return
     }
 
@@ -37,15 +63,16 @@ function App(): JSX.Element {
       }
 
       const data = await response.json()
-      console.log('search data:', data)
-      
       setResults(data.results || [])
-      setLatentDimensions(data.latent_dimensions || [])
       setComparisons(data.comparisons || [])
-
+      setCurrentPage(1)
+      setSelectedIndex(null)
     } catch (error) {
       console.error('Search error:', error)
       setResults([])
+      setComparisons([])
+      setCurrentPage(1)
+      setSelectedIndex(null)
     }
   }
 
@@ -58,6 +85,145 @@ function App(): JSX.Element {
     setSearchTerm(meal)
     void handleSearch(meal)
   }
+
+  const countryOptions = useMemo(() => {
+    return Array.from(new Set(results.map((wine) => wine.country).filter(Boolean) as string[]))
+      .sort((a, b) => a.localeCompare(b))
+  }, [results])
+
+  const varietyOptions = useMemo(() => {
+    return Array.from(new Set(results.map((wine) => wine.variety).filter(Boolean) as string[]))
+      .sort((a, b) => a.localeCompare(b))
+  }, [results])
+
+  const priceBounds = useMemo(() => {
+    const prices = results
+      .map((wine) => toFiniteNumber(wine.price))
+      .filter((price): price is number => price !== null)
+
+    if (prices.length === 0) return null
+    return {
+      min: Math.floor(Math.min(...prices)),
+      max: Math.ceil(Math.max(...prices)),
+    }
+  }, [results])
+
+  const pointsBounds = useMemo(() => {
+    const points = results
+      .map((wine) => toFiniteNumber(wine.points))
+      .filter((point): point is number => point !== null)
+
+    if (points.length === 0) return null
+    return {
+      min: Math.floor(Math.min(...points)),
+      max: Math.ceil(Math.max(...points)),
+    }
+  }, [results])
+
+  const filteredResults = useMemo(() => {
+    const priceMin = filters.priceMin === '' ? null : Number(filters.priceMin)
+    const priceMax = filters.priceMax === '' ? null : Number(filters.priceMax)
+    const pointsMin = filters.pointsMin === '' ? null : Number(filters.pointsMin)
+    const pointsMax = filters.pointsMax === '' ? null : Number(filters.pointsMax)
+
+    const priceFilterActive = priceBounds
+      ? ((priceMin !== null || priceMax !== null)
+        && !(priceMin === priceBounds.min && priceMax === priceBounds.max))
+      : false
+    const pointsFilterActive = pointsBounds
+      ? ((pointsMin !== null || pointsMax !== null)
+        && !(pointsMin === pointsBounds.min && pointsMax === pointsBounds.max))
+      : false
+
+    return results
+      .map((wine, originalIndex) => ({ wine, originalIndex }))
+      .filter(({ wine }) => {
+        const priceValue = toFiniteNumber(wine.price)
+        const pointsValue = toFiniteNumber(wine.points)
+
+        if (priceFilterActive) {
+          if (priceValue === null) return false
+          if (priceMin !== null && priceValue < priceMin) return false
+          if (priceMax !== null && priceValue > priceMax) return false
+        }
+        if (pointsFilterActive) {
+          if (pointsValue === null) return false
+          if (pointsMin !== null && pointsValue < pointsMin) return false
+          if (pointsMax !== null && pointsValue > pointsMax) return false
+        }
+        if (filters.country !== 'All' && wine.country !== filters.country) return false
+        if (filters.variety !== 'All' && wine.variety !== filters.variety) return false
+        return true
+      })
+  }, [results, filters, priceBounds, pointsBounds])
+
+  useEffect(() => {
+    setCurrentPage(1)
+    setSelectedIndex(null)
+  }, [filters])
+
+  useEffect(() => {
+    setFilters((prev) => {
+      let nextMaxPrice = prev.priceMax
+      let nextMinPrice = prev.priceMin
+      let nextMaxPoints = prev.pointsMax
+      let nextMinPoints = prev.pointsMin
+
+      if (!priceBounds) {
+        nextMinPrice = ''
+        nextMaxPrice = ''
+      } else {
+        if (nextMinPrice !== '') {
+          const clampedMin = Math.min(priceBounds.max, Math.max(priceBounds.min, Number(nextMinPrice)))
+          nextMinPrice = String(clampedMin)
+        }
+        if (nextMaxPrice !== '') {
+          const clampedMax = Math.min(priceBounds.max, Math.max(priceBounds.min, Number(nextMaxPrice)))
+          nextMaxPrice = String(clampedMax)
+        }
+        if (nextMinPrice !== '' && nextMaxPrice !== '' && Number(nextMinPrice) > Number(nextMaxPrice)) {
+          nextMinPrice = nextMaxPrice
+        }
+      }
+
+      if (!pointsBounds) {
+        nextMaxPoints = ''
+        nextMinPoints = ''
+      } else {
+        if (nextMinPoints !== '') {
+          const clampedMin = Math.min(pointsBounds.max, Math.max(pointsBounds.min, Number(nextMinPoints)))
+          nextMinPoints = String(clampedMin)
+        }
+        if (nextMaxPoints !== '') {
+          const clampedMax = Math.min(pointsBounds.max, Math.max(pointsBounds.min, Number(nextMaxPoints)))
+          nextMaxPoints = String(clampedMax)
+        }
+        if (nextMinPoints !== '' && nextMaxPoints !== '' && Number(nextMinPoints) > Number(nextMaxPoints)) {
+          nextMinPoints = nextMaxPoints
+        }
+      }
+
+      if (
+        nextMinPrice === prev.priceMin
+        && nextMaxPrice === prev.priceMax
+        && nextMinPoints === prev.pointsMin
+        && nextMaxPoints === prev.pointsMax
+      ) return prev
+      return {
+        ...prev,
+        priceMin: nextMinPrice,
+        priceMax: nextMaxPrice,
+        pointsMin: nextMinPoints,
+        pointsMax: nextMaxPoints,
+      }
+    })
+  }, [priceBounds, pointsBounds])
+
+  const totalPages = Math.max(1, Math.ceil(filteredResults.length / RESULTS_PER_PAGE))
+  const pageStart = (currentPage - 1) * RESULTS_PER_PAGE
+  const visibleResults = filteredResults.slice(pageStart, pageStart + RESULTS_PER_PAGE)
+  const bestSimilarity = results[0]?.similarity ?? 0
+  const showWeakMatchWarning = hasSearched && results.length > 0 && bestSimilarity < WEAK_MATCH_THRESHOLD
 
   if (useLlm === null) return <></>
 
@@ -112,59 +278,44 @@ function App(): JSX.Element {
         {hasSearched && (
           <section className="results-section" aria-live="polite">
             <div className="results-divider" />
-            <div id="answer-box">
-            {results.map((wine, index) => (
-              <article
-                key={`${wine.title}-${index}`}
-                className="result-card"
-                onClick={() =>
-                  setSelectedIndex(selectedIndex === index ? null : index)
-                }
-                style={{
-                  cursor: "pointer"
-                }}
-              >
-                <div className="card-top-row">
-                  <h2 className="wine-name">{wine.title}</h2>
-                  {typeof wine.similarity === 'number' && (
-                    <span className="match-badge">
-                      {(wine.similarity * 100).toFixed(1)}% Match
-                    </span>
-                  )}
-                </div>
+            <FilterBar
+              values={filters}
+              countries={countryOptions}
+              varieties={varietyOptions}
+              priceBounds={priceBounds}
+              pointsBounds={pointsBounds}
+              onChange={setFilters}
+            />
 
-                <p className="wine-subline">
-                  <span>{wine.variety ?? 'Variety unavailable'}</span>
-                  <span className="dot-separator">•</span>
-                  <span>{wine.winery ?? 'Winery unavailable'}</span>
-                </p>
+            {showWeakMatchWarning && (
+              <WarningBanner message="No strong matches found for your search. Showing the closest available results." />
+            )}
 
-                <div className="meta-row">
-                  <span className="meta-chip">
-                    Price: {wine.price != null ? `$${wine.price}` : 'N/A'}
-                  </span>
-                  {wine.points != null && (
-                    <span className="meta-chip">Points: {wine.points}</span>
-                  )}
-                  {wine.country && (
-                    <span className="meta-chip">Country: {wine.country}</span>
-                  )}
-                </div>
-
-                <p className="wine-description">
-                  {wine.description ?? 'No description available.'}
-                </p>
-
-                {selectedIndex === index && comparisons[index] && (
-                  <div style={{ marginTop: "1rem" }}>
-                    <LatentComparisonCharts
-                      comparisons={[comparisons[index]]}
+            {results.length === 0 ? (
+              <div className="results-message">No wines were found for this search.</div>
+            ) : filteredResults.length === 0 ? (
+              <div className="results-message">No results match your current filters.</div>
+            ) : (
+              <>
+                <div id="answer-box">
+                  {visibleResults.map(({ wine, originalIndex }) => (
+                    <WineCard
+                      key={`${wine.title}-${originalIndex}`}
+                      wine={wine}
+                      comparison={comparisons[originalIndex]}
+                      isExpanded={selectedIndex === originalIndex}
+                      onToggle={() => setSelectedIndex(selectedIndex === originalIndex ? null : originalIndex)}
                     />
-                  </div>
-                )}
-              </article>
-            ))}
-            </div>
+                  ))}
+                </div>
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPrevious={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  onNext={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                />
+              </>
+            )}
           </section>
         )}
 

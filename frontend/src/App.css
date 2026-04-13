@@ -35,7 +35,7 @@
 }
 
 .page-shell {
-  width: min(760px, 100%);
+  width: min(1400px, 100%);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -106,7 +106,7 @@
   display: flex;
   justify-content: center;
   gap: 0.65rem;
-  width: min(640px, 100%);
+  width: min(980px, 100%);
   margin: 0 auto;
 }
 
@@ -222,6 +222,92 @@
   gap: 1.2rem;
 }
 
+.filter-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 0.7rem;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(100, 13, 20, 0.12);
+  border-radius: 16px;
+  padding: 0.9rem;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+}
+
+.filter-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.filter-field span {
+  font-size: 0.8rem;
+  color: #6b6b6b;
+}
+
+.filter-field select,
+.filter-field input[type='range'] {
+  width: 100%;
+}
+
+.filter-field select {
+  border: 1px solid rgba(100, 13, 20, 0.2);
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 0.45rem 0.55rem;
+  color: #2e2e2e;
+}
+
+.filter-field select:focus {
+  outline: none;
+  border-color: #800e13;
+  box-shadow: 0 0 0 3px rgba(173, 40, 49, 0.12);
+}
+
+.filter-field input[type='range'] {
+  accent-color: #800e13;
+}
+
+.range-value {
+  font-size: 0.85rem;
+  color: #640d14;
+  font-weight: 600;
+}
+
+.filter-any-toggle {
+  border: 1px solid rgba(100, 13, 20, 0.2);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #640d14;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+}
+
+.filter-any-toggle.active {
+  background: rgba(100, 13, 20, 0.12);
+  border-color: rgba(100, 13, 20, 0.35);
+}
+
+.filter-any-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.warning-banner {
+  background: rgba(173, 40, 49, 0.1);
+  border: 1px solid rgba(100, 13, 20, 0.25);
+  color: #38040e;
+  border-radius: 14px;
+  padding: 0.75rem 0.9rem;
+}
+
 .results-divider {
   height: 1px;
   width: 100%;
@@ -229,8 +315,8 @@
 }
 
 #answer-box {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -246,6 +332,20 @@
 .result-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 14px 28px rgba(56, 4, 14, 0.13);
+}
+
+.chart-wrapper {
+  margin-top: 1rem;
+}
+
+.latent-chart-root {
+  margin-top: 0.2rem;
+}
+
+.latent-chart-container {
+  width: 100%;
+  min-width: 0;
+  height: 360px;
 }
 
 .card-top-row {
@@ -308,8 +408,61 @@
   line-height: 1.58;
 }
 
+.explanation-toggle {
+  margin-top: 0.95rem;
+  border: 1px solid rgba(100, 13, 20, 0.45);
+  border-radius: 12px;
+  background: linear-gradient(140deg, rgba(173, 40, 49, 0.2) 0%, rgba(100, 13, 20, 0.14) 100%);
+  color: #640d14;
+  padding: 0.62rem 0.95rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  cursor: pointer;
+  box-shadow: 0 6px 12px rgba(56, 4, 14, 0.08);
+}
+
+.explanation-toggle:hover {
+  background: linear-gradient(140deg, rgba(173, 40, 49, 0.28) 0%, rgba(100, 13, 20, 0.2) 100%);
+}
+
 .chat-section {
   margin-top: 0.25rem;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.pagination-controls button {
+  border: 1px solid rgba(100, 13, 20, 0.25);
+  background: #ffffff;
+  color: #640d14;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination-controls span {
+  color: #6b6b6b;
+}
+
+.results-message {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(100, 13, 20, 0.1);
+  border-radius: 14px;
+  color: #6b6b6b;
+  padding: 1rem;
 }
 
 .llm-mode #answer-box {
@@ -444,4 +597,27 @@
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  #answer-box {
+    grid-template-columns: 1fr;
+  }
+
+  .latent-chart-container {
+    height: 320px;
+  }
 }
+
+@media (max-width: 980px) and (min-width: 641px) {
+  #answer-box {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+

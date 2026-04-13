@@ -31,9 +31,9 @@ export default function LatentComparisonCharts({ comparisons }: Props) {
   if (!comparisons || comparisons.length === 0) return null;
 
   return (
-    <div style={{ marginTop: "2rem" }}>
+    <div className="latent-chart-root">
       <h2>Why This Wine Was Chosen</h2>
-      <p style={{ marginBottom: "1.5rem" }}>
+      <p style={{ marginBottom: "1rem" }}>
         This chart compares the query to one wine across the query’s strongest latent dimensions.
       </p>
 
@@ -61,20 +61,25 @@ export default function LatentComparisonCharts({ comparisons }: Props) {
               Similarity Score: {comp.similarity.toFixed(3)}
             </p>
 
-            <div style={{ width: "100%", height: 500 }}>
+            <div className="latent-chart-container">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{left:60, right:30, bottom:20}}>
+                <BarChart data={chartData} margin={{ top: 20, left: 30, right: 15, bottom: 26 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="name"
-                    angle={-45}
+                    angle={-30}
                     textAnchor="end"
                     interval={0}
-                    height={170}
+                    height={100}
+                    tickMargin={10}
                   />
                   <YAxis />
                   <Tooltip />
-                  <Legend verticalAlign="bottom"/>
+                  <Legend
+                    verticalAlign="top"
+                    align="right"
+                    wrapperStyle={{ paddingBottom: '12px' }}
+                  />
                   <Bar dataKey="query" name="Query" fill = "#8884d8" />
                   <Bar dataKey="wine" name="Wine" fill = "#82ca9d"/>
                 </BarChart>
