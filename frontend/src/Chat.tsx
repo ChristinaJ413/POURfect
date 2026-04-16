@@ -7,6 +7,8 @@
  */
 import { useState, useRef, useEffect } from 'react'
 import SearchIcon from './assets/mag.png'
+import { WineResult } from './types'
+import ReactMarkdown from 'react-markdown'
 
 interface Message {
   text: string
@@ -15,13 +17,21 @@ interface Message {
 
 interface ChatProps {
   onSearchTerm: (term: string) => void
+  currentSearchTerm?: string
+  currentResults?: WineResult[]
 }
 
-function Chat({ onSearchTerm }: ChatProps): JSX.Element {
-  const [messages, setMessages] = useState<Message[]>([])
+function Chat({ onSearchTerm, currentSearchTerm, currentResults }: ChatProps): JSX.Element {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      text: "Hello! 👋 Ask me about wine pairings and I’ll help you find the perfect match.",
+      isUser: false,
+    },
+  ])
   const [input, setInput] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -35,17 +45,25 @@ function Chat({ onSearchTerm }: ChatProps): JSX.Element {
     setMessages(prev => [...prev, { text, isUser: true }])
     setInput('')
     setLoading(true)
+    inputRef.current?.focus()
 
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          message: text,
+          currentSearchTerm,
+          currentResults,
+        }),
       })
 
       if (!response.ok) {
         const data = await response.json()
-        setMessages(prev => [...prev, { text: 'Error: ' + (data.error || response.status), isUser: false }])
+        setMessages(prev => [
+          ...prev,
+          { text: 'Error: ' + (data.error || response.status), isUser: false },
+        ])
         setLoading(false)
         return
       }
@@ -54,37 +72,61 @@ function Chat({ onSearchTerm }: ChatProps): JSX.Element {
       setMessages(prev => [...prev, { text: '', isUser: false }])
       setLoading(false)
 
-      const reader = response.body!.getReader()
+      const reader = response.body?.getReader()
+      if (!reader) {
+        setMessages(prev => [
+          ...prev.slice(0, -1),
+          { text: 'Error: No response body found.', isUser: false },
+        ])
+        return
+      }
+
       const decoder = new TextDecoder()
       let buffer = ''
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
+
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
         buffer = lines.pop() ?? ''
+
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6))
-              if (data.search_term !== undefined) {
-                onSearchTerm(data.search_term)
-              }
-              if (data.error) {
-                setMessages(prev => [...prev.slice(0, -1), { text: 'Error: ' + data.error, isUser: false }])
-                return
-              }
-              if (data.content !== undefined) {
-                assistantText += data.content
-                setMessages(prev => [...prev.slice(0, -1), { text: assistantText, isUser: false }])
-              }
-            } catch { /* ignore malformed lines */ }
+          if (!line.startsWith('data: ')) continue
+
+          try {
+            const data = JSON.parse(line.slice(6))
+
+            if (data.search_term !== undefined) {
+              onSearchTerm(data.search_term)
+            }
+
+            if (data.error) {
+              setMessages(prev => [
+                ...prev.slice(0, -1),
+                { text: 'Error: ' + data.error, isUser: false },
+              ])
+              return
+            }
+
+            if (data.content !== undefined) {
+              assistantText += data.content
+              setMessages(prev => [
+                ...prev.slice(0, -1),
+                { text: assistantText, isUser: false },
+              ])
+            }
+          } catch {
+            // ignore malformed lines
           }
         }
       }
     } catch {
-      setMessages(prev => [...prev, { text: 'Something went wrong. Check the console.', isUser: false }])
+      setMessages(prev => [
+        ...prev,
+        { text: 'Something went wrong. Check the console.', isUser: false },
+      ])
       setLoading(false)
     }
   }
@@ -94,9 +136,10 @@ function Chat({ onSearchTerm }: ChatProps): JSX.Element {
       <div id="messages">
         {messages.map((msg, i) => (
           <div key={i} className={`message ${msg.isUser ? 'user' : 'assistant'}`}>
-            <p>{msg.text}</p>
+            <ReactMarkdown>{msg.text}</ReactMarkdown>
           </div>
         ))}
+
         {loading && (
           <div className="loading-indicator visible">
             <span className="loading-dot" />
@@ -104,6 +147,7 @@ function Chat({ onSearchTerm }: ChatProps): JSX.Element {
             <span className="loading-dot" />
           </div>
         )}
+
         <div ref={bottomRef} />
       </div>
 
@@ -111,11 +155,12 @@ function Chat({ onSearchTerm }: ChatProps): JSX.Element {
         <form className="input-row" onSubmit={sendMessage}>
           <img src={SearchIcon} alt="" />
           <input
+            ref={inputRef}
             type="text"
             placeholder="Ask about a dish or pairing idea"
             value={input}
             onChange={e => setInput(e.target.value)}
-            disabled={loading}
+            disabled={false}
             autoComplete="off"
           />
           <button type="submit" disabled={loading}>Send</button>

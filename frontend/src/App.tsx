@@ -26,6 +26,7 @@ function App(): JSX.Element {
   const [comparisons, setComparisons] = useState<Comparison[]>([])
   const [hasSearched, setHasSearched] = useState<boolean>(false)
 
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false)
   const [suggestedQueries, setSuggestedQueries] = useState<string[]>([])
 
   const sampleMeals = ['Steak', 'Pizza', 'Pasta', 'Burger', 'Lobster']
@@ -345,11 +346,42 @@ function App(): JSX.Element {
           </section>
         )}
 
-        {/* {useLlm && (
-          <section className="chat-section">
-            <Chat onSearchTerm={handleSearch} />
-          </section>
-        )} */}
+      {useLlm && (
+        <>
+          <button
+            type="button"
+            className="chat-fab"
+            onClick={() => setIsChatOpen((prev) => !prev)}
+            aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
+          >
+            {isChatOpen ? '×' : 'Chat'}
+          </button>
+
+          {isChatOpen && (
+            <section className="chat-popup">
+              <div className="chat-popup-header">
+                <h2>POURfect Assistant</h2>
+                <button
+                  type="button"
+                  className="chat-close-button"
+                  onClick={() => setIsChatOpen(false)}
+                  aria-label="Close chat"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="chat-popup-body">
+                <Chat
+                  onSearchTerm={handleSearch}
+                  currentSearchTerm={searchTerm}
+                  currentResults={results}
+                />
+              </div>
+            </section>
+          )}
+        </>
+      )}
       </main>
     </div>
   )

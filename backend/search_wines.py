@@ -39,6 +39,43 @@ def build_dimension_labels(vectorizer, svd, top_n=5):
 
     return dim_labels
 
+def format_wines_for_llm(results, max_items=5):
+    """
+    Convert retrieved wine results into compact text for the chatbot prompt.
+    """
+    lines = []
+
+    for i, row in enumerate(results[:max_items], start=1):
+        lines.append(
+            f"""Wine {i}:
+Title: {row.get('title') or 'Unknown'}
+Variety: {row.get('variety') or 'Unknown'}
+Winery: {row.get('winery') or 'Unknown'}
+Country: {row.get('country') or 'Unknown'}
+Price: {row.get('price') if row.get('price') is not None else 'Unknown'}
+Points: {row.get('points') if row.get('points') is not None else 'Unknown'}
+Description: {row.get('description') or 'No description available'}
+Similarity: {row.get('similarity'):.3f}"""
+        )
+
+    return "\n\n".join(lines)
+
+def get_chatbot_context(query, top_k=5):
+    """
+    Retrieve wines for a user query and format them for an LLM prompt.
+    """
+    data = search_wines(query, top_k=top_k)
+    results = data["results"]
+    context_text = format_wines_for_llm(results, max_items=top_k)
+
+    return {
+        "query": query,
+        "results": results,
+        "context_text": context_text,
+        "latent_dimensions": data["latent_dimensions"],
+        "comparisons": data["comparisons"],
+    }
+
 def load_resources():
     global _df, _X, _vectorizer, _svd, _dim_labels
 
@@ -100,7 +137,11 @@ def search_wines(query, top_k=5, top_dims=10):
     #top_indices = scores.argsort()[-top_k:][::-1]
     sorted_indices = scores.argsort()[::-1]
     filtered_indices = [i for i in sorted_indices if scores[i] >= 0.1]
-    top_indices = filtered_indices[:top_k]
+
+    if len(filtered_indices) >= top_k:
+        top_indices = filtered_indices[:top_k]
+    else:
+        top_indices = sorted_indices[:top_k]
 
     results = df.iloc[top_indices].copy()
     results["similarity"] = scores[top_indices]
@@ -152,6 +193,7 @@ def search_wines(query, top_k=5, top_dims=10):
         })
 
     return {
+        "query": query,
         "results": records,
         "latent_dimensions": latent_dimensions,
         "comparisons": comparisons
