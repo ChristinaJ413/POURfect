@@ -8,10 +8,11 @@ import os
 from flask import send_from_directory, request, jsonify
 from src.models import Episode, db, Review
 from backend.search_wines import search_wines as backend_search_wines
+from backend.rag import run_query_with_suggestions, SAMPLE_DESCRIPTIONS
 
 # ── AI toggle ────────────────────────────────────────────────────────────────
-USE_LLM = False
-# USE_LLM = True
+#USE_LLM = False
+USE_LLM = True
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -60,9 +61,10 @@ def register_routes(app):
                 "latent_dimensions": []
             })
         
-        data = backend_search_wines(query, top_k=5, top_dims=10)
+        #data = backend_search_wines(query, top_k=5, top_dims=10)
+        data = run_query_with_suggestions(query, SAMPLE_DESCRIPTIONS)
         return jsonify(data)
 
     if USE_LLM:
-        from llm_routes import register_chat_route
+        from src.llm_routes import register_chat_route
         register_chat_route(app, json_search)

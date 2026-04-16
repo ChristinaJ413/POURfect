@@ -97,7 +97,11 @@ def search_wines(query, top_k=5, top_dims=10):
     scores = cosine_similarity(query_latent, X)[0]
     query_latent_1d = query_latent[0]
 
-    top_indices = scores.argsort()[-top_k:][::-1]
+    #top_indices = scores.argsort()[-top_k:][::-1]
+    sorted_indices = scores.argsort()[::-1]
+    filtered_indices = [i for i in sorted_indices if scores[i] >= 0.1]
+    top_indices = filtered_indices[:top_k]
+
     results = df.iloc[top_indices].copy()
     results["similarity"] = scores[top_indices]
 

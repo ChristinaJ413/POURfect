@@ -25,6 +25,9 @@ function App(): JSX.Element {
   const [results, setResults] = useState<WineResult[]>([])
   const [comparisons, setComparisons] = useState<Comparison[]>([])
   const [hasSearched, setHasSearched] = useState<boolean>(false)
+
+  const [suggestedQueries, setSuggestedQueries] = useState<string[]>([])
+
   const sampleMeals = ['Steak', 'Pizza', 'Pasta', 'Burger', 'Lobster']
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState<number>(1)
@@ -51,6 +54,7 @@ function App(): JSX.Element {
     if (query === '') {
       setResults([])
       setComparisons([])
+      setSuggestedQueries([])
       setCurrentPage(1)
       setSelectedIndex(null)
       return
@@ -65,12 +69,14 @@ function App(): JSX.Element {
       const data = await response.json()
       setResults(data.results || [])
       setComparisons(data.comparisons || [])
+      setSuggestedQueries(data.suggested_queries || [])
       setCurrentPage(1)
       setSelectedIndex(null)
     } catch (error) {
       console.error('Search error:', error)
       setResults([])
       setComparisons([])
+      setSuggestedQueries([])
       setCurrentPage(1)
       setSelectedIndex(null)
     }
@@ -84,6 +90,11 @@ function App(): JSX.Element {
   const onChipClick = (meal: string): void => {
     setSearchTerm(meal)
     void handleSearch(meal)
+  }
+
+  const onSuggestionClick = (query: string): void => {
+    setSearchTerm(query)
+    void handleSearch(query)
   }
 
   const countryOptions = useMemo(() => {
@@ -251,6 +262,21 @@ function App(): JSX.Element {
             <button type="submit" className="search-button">Search</button>
           </form>
 
+          {suggestedQueries.length > 0 && hasSearched && (
+            <div className="suggestions-row">
+              <span className='suggestion-label'>Suggested queries:</span>
+              {suggestedQueries.map((q, idx) => (
+                <button
+                  key={`${q}-${idx}`}
+                  type="button"
+                  className="suggestion-link"
+                  onClick={() => onSuggestionClick(q)}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>)}
+
           <div className="chip-row" aria-label="Example meal searches">
             {sampleMeals.map((meal) => (
               <button
@@ -319,11 +345,11 @@ function App(): JSX.Element {
           </section>
         )}
 
-        {useLlm && (
+        {/* {useLlm && (
           <section className="chat-section">
             <Chat onSearchTerm={handleSearch} />
           </section>
-        )}
+        )} */}
       </main>
     </div>
   )
