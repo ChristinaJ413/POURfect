@@ -48,15 +48,15 @@ def format_wines_for_llm(results, max_items=5):
     for i, row in enumerate(results[:max_items], start=1):
         lines.append(
             f"""Wine {i}:
-Title: {row.get('title') or 'Unknown'}
-Variety: {row.get('variety') or 'Unknown'}
-Winery: {row.get('winery') or 'Unknown'}
-Country: {row.get('country') or 'Unknown'}
-Price: {row.get('price') if row.get('price') is not None else 'Unknown'}
-Points: {row.get('points') if row.get('points') is not None else 'Unknown'}
-Description: {row.get('description') or 'No description available'}
-Similarity: {row.get('similarity'):.3f}"""
-        )
+            Title: {row.get('title') or 'Unknown'}
+            Variety: {row.get('variety') or 'Unknown'}
+            Winery: {row.get('winery') or 'Unknown'}
+            Country: {row.get('country') or 'Unknown'}
+            Price: {row.get('price') if row.get('price') is not None else 'Unknown'}
+            Points: {row.get('points') if row.get('points') is not None else 'Unknown'}
+            Description: {row.get('description') or 'No description available'}
+            Similarity: {row.get('similarity'):.3f}"""
+            )
 
     return "\n\n".join(lines)
 
@@ -191,6 +191,9 @@ def search_wines(query, top_k=5, top_dims=10):
             "similarity": float(scores[original_idx]),
             "dimensions": comparison_dims
         })
+
+    for r in records:
+        print(r["title"])
 
     return {
         "query": query,

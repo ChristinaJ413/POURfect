@@ -62,8 +62,8 @@ def register_routes(app):
                 "latent_dimensions": []
             })
         
-        data = backend_search_wines(query, top_k=5, top_dims=10)
-        #data = run_query_with_suggestions(query, SAMPLE_DESCRIPTIONS)
+        #data = backend_search_wines(query, top_k=5, top_dims=10)
+        data = run_query_with_suggestions(query, SAMPLE_DESCRIPTIONS)
         return jsonify(data)
 
     if USE_LLM:

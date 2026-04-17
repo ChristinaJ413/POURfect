@@ -26,7 +26,7 @@ def register_chat_route(app, get_chatbot_context):
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
 
-        api_key = os.getenv("API_KEY")
+        api_key = os.getenv("SPARK_API_KEY")
         if not api_key:
             return jsonify({"error": "API_KEY not set — add it to your .env file"}), 500
 
@@ -57,7 +57,7 @@ def register_chat_route(app, get_chatbot_context):
                     "content": (
                         f"User question: {user_message}\n\n"
                         f"Retrieved wines:\n\n{context_text}\n\n"
-                        "Recommend wines and explain why they fit the user's request."
+                        "Recommend the wines in the exact order provided (highest similarity first). Do not reorder or skip any wines. Explain why each wine fits the user's request."
                     ),
                 },
             ]
