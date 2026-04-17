@@ -346,42 +346,42 @@ function App(): JSX.Element {
           </section>
         )}
 
-      {useLlm && (
-        <>
-          <button
-            type="button"
-            className="chat-fab"
-            onClick={() => setIsChatOpen((prev) => !prev)}
-            aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
-          >
-            {isChatOpen ? '×' : 'Chat'}
-          </button>
+        {useLlm && (
+          <>
+            <button
+              type="button"
+              className="chat-fab"
+              onClick={() => setIsChatOpen((prev) => !prev)}
+              aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
+            >
+              {isChatOpen ? '×' : 'Chat'}
+            </button>
 
-          {isChatOpen && (
-            <section className="chat-popup">
-              <div className="chat-popup-header">
-                <h2>POURfect Assistant</h2>
-                <button
-                  type="button"
-                  className="chat-close-button"
-                  onClick={() => setIsChatOpen(false)}
-                  aria-label="Close chat"
-                >
-                  ×
-                </button>
-              </div>
+            {isChatOpen && (
+              <section className="chat-popup">
+                <div className="chat-popup-header">
+                  <h2>POURfect Assistant</h2>
+                  <button
+                    type="button"
+                    className="chat-close-button"
+                    onClick={() => setIsChatOpen(false)}
+                    aria-label="Close chat"
+                  >
+                    ×
+                  </button>
+                </div>
 
-              <div className="chat-popup-body">
-                <Chat
-                  onSearchTerm={handleSearch}
-                  currentSearchTerm={searchTerm}
-                  currentResults={results}
-                />
-              </div>
-            </section>
-          )}
-        </>
-      )}
+                <div className="chat-popup-body">
+                  <Chat
+                    onSearchTerm={handleSearch}
+                    currentSearchTerm={searchTerm}
+                    currentResults={results}
+                  />
+                </div>
+              </section>
+            )}
+          </>
+        )}
       </main>
     </div>
   )

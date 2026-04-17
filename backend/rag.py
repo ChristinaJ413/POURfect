@@ -90,6 +90,7 @@ def run_query_with_suggestions(user_query, sample_descriptions):
   return {
     "original_query": user_query,
     "results": results,
+    "comparisons": data["comparisons"],
     "suggested_queries": suggestions}
 
 def main():

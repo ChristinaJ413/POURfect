@@ -194,6 +194,7 @@ def search_wines(query, top_k=5, top_dims=10):
 
     for r in records:
         print(r["title"])
+    print("COMPARISONS LENGTH:", len(comparisons))
 
     return {
         "query": query,
