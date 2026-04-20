@@ -59,7 +59,10 @@ def register_routes(app):
         if not query or not query.strip():
             return jsonify({
                 "results": [],
-                "latent_dimensions": []
+                "latent_dimensions": [],
+                "comparisons": [],
+                "no_strong_matches": False,
+                "suggested_queries": [],
             })
         
         #data = backend_search_wines(query, top_k=5, top_dims=10)

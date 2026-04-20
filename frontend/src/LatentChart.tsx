@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   Legend
 } from "recharts";
+import { formatDecimal } from "./formatDecimal";
 
 type DimensionDatum = {
   dimension: number;
@@ -73,8 +74,13 @@ export default function LatentComparisonCharts({ comparisons }: Props) {
                     height={100}
                     tickMargin={10}
                   />
-                  <YAxis />
-                  <Tooltip />
+                  <YAxis tickFormatter={(v) => formatDecimal(Number(v))} />
+                  <Tooltip
+                    formatter={(value, name) => [
+                      formatDecimal(Number(value ?? 0)),
+                      String(name ?? ''),
+                    ]}
+                  />
                   <Legend
                     verticalAlign="top"
                     align="right"

@@ -1,35 +1,49 @@
-env/
-.DS_Store
-Docker/__pycache__
+# Environment / secrets
+.env
+backend/.env
 
+# Python environments
 venv/
+env/
+backend/.venv/
 
+# OS files
+.DS_Store
+
+# Python cache
 *.pyc
 __pycache__/
+Docker/__pycache__
 
+# Databases / instance
 instance/
 data.db
 
+# Testing
 .pytest_cache/
 .coverage
 htmlcov/
 
+# Build
 dist/
 build/
 *.egg-info/
+
+# Helpers
 helpers/*
 json_template/
 
-# Node/React
+# Node / React
 node_modules/
-frontend/dist/
 frontend/node_modules/
+frontend/dist/
 package-lock.json
 
-.env
-
-# data
+# Data files (local only, do NOT push)
+backend/data/
+backend/data/*.csv
+backend/data/*.json
 backend/data/*.npz
-backend/data/*.pklbackend/data/
+backend/data/*.pkl
 *.npy
 *.pkl

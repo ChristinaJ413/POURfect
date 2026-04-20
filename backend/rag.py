@@ -30,6 +30,9 @@ def build_df_sample(df, n=20):
 
 SAMPLE_DESCRIPTIONS = build_df_sample(df)
 
+# Max wines returned by search API; chat/RAG query rewrite still uses a small slice in build_context().
+SEARCH_TOP_K = 50
+
 # check quality of retrieval
 def is_good_retrieval(results, threshold = 0.3):
   if not results:
@@ -77,7 +80,7 @@ Rules:
     return [query_suggestions]
   
 def run_query_with_suggestions(user_query, sample_descriptions):
-  data = search_wines(user_query, top_k=5)
+  data = search_wines(user_query, top_k=SEARCH_TOP_K)
   results = data["results"]
 
   if results:
@@ -91,7 +94,10 @@ def run_query_with_suggestions(user_query, sample_descriptions):
     "original_query": user_query,
     "results": results,
     "comparisons": data["comparisons"],
-    "suggested_queries": suggestions}
+    "latent_dimensions": data.get("latent_dimensions", []),
+    "suggested_queries": suggestions,
+    "no_strong_matches": data.get("no_strong_matches", False),
+  }
 
 def main():
   """

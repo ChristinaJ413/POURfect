@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { Comparison, WineResult } from './types'
 import Chat from './Chat'
-import FilterBar, { FilterValues } from './FilterBar'
+import FilterBar, { DEFAULT_FILTERS, FilterValues } from './FilterBar'
 import PaginationControls from './PaginationControls'
 import WarningBanner from './WarningBanner'
 import WineCard from './WineCard'
@@ -28,18 +28,12 @@ function App(): JSX.Element {
 
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false)
   const [suggestedQueries, setSuggestedQueries] = useState<string[]>([])
+  const [noStrongMatches, setNoStrongMatches] = useState<boolean>(false)
 
   const sampleMeals = ['Steak', 'Pizza', 'Pasta', 'Burger', 'Lobster']
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState<number>(1)
-  const [filters, setFilters] = useState<FilterValues>({
-    priceMin: '',
-    priceMax: '',
-    pointsMin: '',
-    pointsMax: '',
-    country: 'All',
-    variety: 'All',
-  })
+  const [filters, setFilters] = useState<FilterValues>(DEFAULT_FILTERS)
 
   useEffect(() => {
     fetch('/api/config')
@@ -48,6 +42,7 @@ function App(): JSX.Element {
   }, [])
 
   const handleSearch = async (value: string): Promise<void> => {
+    setFilters(DEFAULT_FILTERS)
     const query = value.trim()
     setSearchTerm(value)
     setHasSearched(query.length > 0)
@@ -56,6 +51,7 @@ function App(): JSX.Element {
       setResults([])
       setComparisons([])
       setSuggestedQueries([])
+      setNoStrongMatches(false)
       setCurrentPage(1)
       setSelectedIndex(null)
       return
@@ -71,6 +67,7 @@ function App(): JSX.Element {
       setResults(data.results || [])
       setComparisons(data.comparisons || [])
       setSuggestedQueries(data.suggested_queries || [])
+      setNoStrongMatches(data.no_strong_matches === true)
       setCurrentPage(1)
       setSelectedIndex(null)
     } catch (error) {
@@ -78,6 +75,7 @@ function App(): JSX.Element {
       setResults([])
       setComparisons([])
       setSuggestedQueries([])
+      setNoStrongMatches(false)
       setCurrentPage(1)
       setSelectedIndex(null)
     }
@@ -235,7 +233,9 @@ function App(): JSX.Element {
   const pageStart = (currentPage - 1) * RESULTS_PER_PAGE
   const visibleResults = filteredResults.slice(pageStart, pageStart + RESULTS_PER_PAGE)
   const bestSimilarity = results[0]?.similarity ?? 0
-  const showWeakMatchWarning = hasSearched && results.length > 0 && bestSimilarity < WEAK_MATCH_THRESHOLD
+  const showWeakMatchWarning =
+    hasSearched
+    && (noStrongMatches || (results.length > 0 && bestSimilarity < WEAK_MATCH_THRESHOLD))
 
   if (useLlm === null) return <></>
 
@@ -264,32 +264,41 @@ function App(): JSX.Element {
           </form>
 
           {suggestedQueries.length > 0 && hasSearched && (
-            <div className="suggestions-row">
-              <span className='suggestion-label'>Suggested queries:</span>
-              {suggestedQueries.map((q, idx) => (
+            <div className="suggestions-block">
+              <span className="suggestion-label">Suggested queries</span>
+              <div
+                className="suggestion-chips"
+                role="group"
+                aria-label="AI-suggested search queries"
+              >
+                {suggestedQueries.map((q, idx) => (
+                  <button
+                    key={`${q}-${idx}`}
+                    type="button"
+                    className="suggestion-chip"
+                    onClick={() => onSuggestionClick(q)}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!hasSearched && (
+            <div className="chip-row" aria-label="Example meal searches">
+              {sampleMeals.map((meal) => (
                 <button
-                  key={`${q}-${idx}`}
+                  key={meal}
                   type="button"
-                  className="suggestion-link"
-                  onClick={() => onSuggestionClick(q)}
+                  className="meal-chip"
+                  onClick={() => onChipClick(meal)}
                 >
-                  {q}
+                  {meal}
                 </button>
               ))}
-            </div>)}
-
-          <div className="chip-row" aria-label="Example meal searches">
-            {sampleMeals.map((meal) => (
-              <button
-                key={meal}
-                type="button"
-                className="meal-chip"
-                onClick={() => onChipClick(meal)}
-              >
-                {meal}
-              </button>
-            ))}
-          </div>
+            </div>
+          )}
         </section>
 
         {!hasSearched && (
@@ -305,26 +314,33 @@ function App(): JSX.Element {
         {hasSearched && (
           <section className="results-section" aria-live="polite">
             <div className="results-divider" />
-            <FilterBar
-              values={filters}
-              countries={countryOptions}
-              varieties={varietyOptions}
-              priceBounds={priceBounds}
-              pointsBounds={pointsBounds}
-              onChange={setFilters}
-            />
+            {results.length > 0 && (
+              <FilterBar
+                values={filters}
+                countries={countryOptions}
+                varieties={varietyOptions}
+                priceBounds={priceBounds}
+                pointsBounds={pointsBounds}
+                onChange={setFilters}
+              />
+            )}
 
             {showWeakMatchWarning && (
-              <WarningBanner message="No strong matches found for your search. Showing the closest available results." />
+              <WarningBanner message="No strong matches found for your search. Try a suggested query or a simpler meal name." />
             )}
 
             {results.length === 0 ? (
-              <div className="results-message">No wines were found for this search.</div>
+              noStrongMatches ? null : (
+                <div className="results-message">No wines were found for this search.</div>
+              )
             ) : filteredResults.length === 0 ? (
-              <div className="results-message">No results match your current filters.</div>
+              <WarningBanner message="No results match your current filters." />
             ) : (
               <>
-                <div id="answer-box">
+                <div
+                  id="answer-box"
+                  className={selectedIndex !== null ? 'answer-box--explanation-open' : undefined}
+                >
                   {visibleResults.map(({ wine, originalIndex }) => (
                     <WineCard
                       key={`${wine.title}-${originalIndex}`}

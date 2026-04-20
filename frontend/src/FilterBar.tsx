@@ -1,10 +1,21 @@
-interface FilterValues {
+import RangeSlider from './RangeSlider'
+
+export interface FilterValues {
   priceMin: string
   priceMax: string
   pointsMin: string
   pointsMax: string
   country: string
   variety: string
+}
+
+export const DEFAULT_FILTERS: FilterValues = {
+  priceMin: '',
+  priceMax: '',
+  pointsMin: '',
+  pointsMax: '',
+  country: 'All',
+  variety: 'All',
 }
 
 interface FilterBarProps {
@@ -71,32 +82,23 @@ function FilterBar({
         <div className="range-value">
           {priceIsAny ? 'Any' : `$${sliderMinPrice} - $${sliderMaxPrice}`}
         </div>
-        <div className="range-inputs">
-          <input
-            type="range"
-            min={priceBounds?.min ?? 0}
-            max={priceBounds?.max ?? 0}
+        {priceBounds && (
+          <RangeSlider
+            min={priceBounds.min}
+            max={priceBounds.max}
             step={1}
+            low={sliderMinPrice}
+            high={sliderMaxPrice}
             disabled={!priceBounds}
-            value={sliderMinPrice}
-            onChange={(e) => {
-              const next = Math.min(Number(e.target.value), sliderMaxPrice)
-              updateField('priceMin', String(next))
+            onChange={(low, high) => {
+              onChange({
+                ...values,
+                priceMin: String(low),
+                priceMax: String(high),
+              })
             }}
           />
-          <input
-            type="range"
-            min={priceBounds?.min ?? 0}
-            max={priceBounds?.max ?? 0}
-            step={1}
-            disabled={!priceBounds}
-            value={sliderMaxPrice}
-            onChange={(e) => {
-              const next = Math.max(Number(e.target.value), sliderMinPrice)
-              updateField('priceMax', String(next))
-            }}
-          />
-        </div>
+        )}
       </div>
 
       <div className="filter-field">
@@ -114,32 +116,23 @@ function FilterBar({
         <div className="range-value">
           {pointsIsAny ? 'Any' : `${sliderMinPoints} - ${sliderMaxPoints}`}
         </div>
-        <div className="range-inputs">
-          <input
-            type="range"
-            min={pointsBounds?.min ?? 0}
-            max={pointsBounds?.max ?? 0}
+        {pointsBounds && (
+          <RangeSlider
+            min={pointsBounds.min}
+            max={pointsBounds.max}
             step={1}
+            low={sliderMinPoints}
+            high={sliderMaxPoints}
             disabled={!pointsBounds}
-            value={sliderMinPoints}
-            onChange={(e) => {
-              const next = Math.min(Number(e.target.value), sliderMaxPoints)
-              updateField('pointsMin', String(next))
+            onChange={(low, high) => {
+              onChange({
+                ...values,
+                pointsMin: String(low),
+                pointsMax: String(high),
+              })
             }}
           />
-          <input
-            type="range"
-            min={pointsBounds?.min ?? 0}
-            max={pointsBounds?.max ?? 0}
-            step={1}
-            disabled={!pointsBounds}
-            value={sliderMaxPoints}
-            onChange={(e) => {
-              const next = Math.max(Number(e.target.value), sliderMinPoints)
-              updateField('pointsMax', String(next))
-            }}
-          />
-        </div>
+        )}
       </div>
 
       <label className="filter-field">
@@ -165,5 +158,4 @@ function FilterBar({
   )
 }
 
-export type { FilterValues }
 export default FilterBar

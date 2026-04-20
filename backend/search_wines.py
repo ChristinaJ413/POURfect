@@ -113,16 +113,18 @@ def load_resources():
     return df, X, vectorizer, svd, _dim_labels
 
 
-def search_wines(query, top_k=5, top_dims=10):
+def search_wines(query, top_k=20, top_dims=10):
     """
     Search for wines matching the food query and return JSON-serializable data.
     Also returns latent dimension comparisons between the query and each result.
     """
     if not query or not query.strip():
         return {
+            "query": query.strip() if query else "",
             "results": [],
             "latent_dimensions": [],
-            "comparisons": []
+            "comparisons": [],
+            "no_strong_matches": False,
         }
 
     df, X, vectorizer, svd, dim_labels = load_resources()
@@ -134,14 +136,19 @@ def search_wines(query, top_k=5, top_dims=10):
     scores = cosine_similarity(query_latent, X)[0]
     query_latent_1d = query_latent[0]
 
-    #top_indices = scores.argsort()[-top_k:][::-1]
     sorted_indices = scores.argsort()[::-1]
     filtered_indices = [i for i in sorted_indices if scores[i] >= 0.1]
 
-    if len(filtered_indices) >= top_k:
-        top_indices = filtered_indices[:top_k]
-    else:
-        top_indices = sorted_indices[:top_k]
+    if not filtered_indices:
+        return {
+            "query": query,
+            "results": [],
+            "latent_dimensions": [],
+            "comparisons": [],
+            "no_strong_matches": True,
+        }
+
+    top_indices = filtered_indices[:top_k]
 
     results = df.iloc[top_indices].copy()
     results["similarity"] = scores[top_indices]
@@ -200,7 +207,8 @@ def search_wines(query, top_k=5, top_dims=10):
         "query": query,
         "results": records,
         "latent_dimensions": latent_dimensions,
-        "comparisons": comparisons
+        "comparisons": comparisons,
+        "no_strong_matches": False,
     }
 
 def display_results(results):
