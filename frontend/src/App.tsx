@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { Comparison, WineResult } from './types'
 import Chat from './Chat'
 import FilterBar, { DEFAULT_FILTERS, FilterValues } from './FilterBar'
+import LatentComparisonCharts from './LatentChart'
 import PaginationControls from './PaginationControls'
 import WarningBanner from './WarningBanner'
 import WineCard from './WineCard'
@@ -31,9 +32,13 @@ function App(): JSX.Element {
   const [noStrongMatches, setNoStrongMatches] = useState<boolean>(false)
 
   const sampleMeals = ['Steak', 'Pizza', 'Pasta', 'Burger', 'Lobster']
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [openExplanationIds, setOpenExplanationIds] = useState<Set<string>>(new Set())
+  const [compareSelection, setCompareSelection] = useState<number[]>([])
+  const [isCompareOpen, setIsCompareOpen] = useState<boolean>(false)
+  const [compareLimitMessage, setCompareLimitMessage] = useState<string>('')
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [filters, setFilters] = useState<FilterValues>(DEFAULT_FILTERS)
+  const comparisonPanelRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     fetch('/api/config')
@@ -52,8 +57,11 @@ function App(): JSX.Element {
       setComparisons([])
       setSuggestedQueries([])
       setNoStrongMatches(false)
+      setCompareSelection([])
+      setIsCompareOpen(false)
+      setCompareLimitMessage('')
       setCurrentPage(1)
-      setSelectedIndex(null)
+      setOpenExplanationIds(new Set())
       return
     }
 
@@ -68,16 +76,22 @@ function App(): JSX.Element {
       setComparisons(data.comparisons || [])
       setSuggestedQueries(data.suggested_queries || [])
       setNoStrongMatches(data.no_strong_matches === true)
+      setCompareSelection([])
+      setIsCompareOpen(false)
+      setCompareLimitMessage('')
       setCurrentPage(1)
-      setSelectedIndex(null)
+      setOpenExplanationIds(new Set())
     } catch (error) {
       console.error('Search error:', error)
       setResults([])
       setComparisons([])
       setSuggestedQueries([])
       setNoStrongMatches(false)
+      setCompareSelection([])
+      setIsCompareOpen(false)
+      setCompareLimitMessage('')
       setCurrentPage(1)
-      setSelectedIndex(null)
+      setOpenExplanationIds(new Set())
     }
   }
 
@@ -169,8 +183,20 @@ function App(): JSX.Element {
 
   useEffect(() => {
     setCurrentPage(1)
-    setSelectedIndex(null)
+    setOpenExplanationIds(new Set())
   }, [filters])
+  const toggleExplanation = (cardId: string): void => {
+    setOpenExplanationIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(cardId)) {
+        next.delete(cardId)
+      } else {
+        next.add(cardId)
+      }
+      return next
+    })
+  }
+
 
   useEffect(() => {
     setFilters((prev) => {
@@ -232,10 +258,66 @@ function App(): JSX.Element {
   const totalPages = Math.max(1, Math.ceil(filteredResults.length / RESULTS_PER_PAGE))
   const pageStart = (currentPage - 1) * RESULTS_PER_PAGE
   const visibleResults = filteredResults.slice(pageStart, pageStart + RESULTS_PER_PAGE)
+  const maxVisibleMatch = visibleResults.reduce((max, { wine }) => {
+    if (typeof wine.similarity !== 'number' || !Number.isFinite(wine.similarity)) return max
+    return Math.max(max, wine.similarity)
+  }, Number.NEGATIVE_INFINITY)
+  const selectedComparisonWines = compareSelection
+    .map((idx) => ({ index: idx, wine: results[idx] }))
+    .filter((entry): entry is { index: number, wine: WineResult } => Boolean(entry.wine))
+  const selectedComparisonEntries = selectedComparisonWines
+    .map((entry) => ({
+      ...entry,
+      comparison: comparisons[entry.index],
+    }))
+    .filter((entry): entry is { index: number, wine: WineResult, comparison: Comparison } => Boolean(entry.comparison))
+  const canCompare = selectedComparisonWines.length === 2
+  const firstSimilarity = selectedComparisonWines[0]?.wine.similarity ?? Number.NEGATIVE_INFINITY
+  const secondSimilarity = selectedComparisonWines[1]?.wine.similarity ?? Number.NEGATIVE_INFINITY
+  const bestMatchIndex = canCompare
+    ? (firstSimilarity >= secondSimilarity ? 0 : 1)
+    : null
+  const bestMatchWine = bestMatchIndex !== null ? selectedComparisonWines[bestMatchIndex].wine : null
   const bestSimilarity = results[0]?.similarity ?? 0
   const showWeakMatchWarning =
     hasSearched
     && (noStrongMatches || (results.length > 0 && bestSimilarity < WEAK_MATCH_THRESHOLD))
+
+  const toggleCompareSelection = (originalIndex: number): void => {
+    const isSelected = compareSelection.includes(originalIndex)
+    if (isSelected) {
+      setCompareSelection(compareSelection.filter((idx) => idx !== originalIndex))
+      setCompareLimitMessage('')
+      return
+    }
+    if (compareSelection.length >= 2) {
+      setCompareLimitMessage('You can compare up to 2 wines.')
+      return
+    }
+    setCompareSelection([...compareSelection, originalIndex])
+    setCompareLimitMessage('')
+  }
+
+  const formatPrice = (value: number | null | undefined): string => {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
+    return `$${value}`
+  }
+
+  const formatPoints = (value: number | null | undefined): string => {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
+    return `${Math.round(value)}`
+  }
+
+  const formatSimilarity = (value: number | null | undefined): string => {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
+    return `${(value * 100).toFixed(1)}%`
+  }
+
+  useEffect(() => {
+    if (isCompareOpen && canCompare && comparisonPanelRef.current) {
+      comparisonPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [isCompareOpen, canCompare])
 
   if (useLlm === null) return <></>
 
@@ -329,6 +411,116 @@ function App(): JSX.Element {
               <WarningBanner message="No strong matches found for your search. Try a suggested query or a simpler meal name." />
             )}
 
+            {results.length > 0 && (
+              <section className="compare-toolbar" aria-label="Wine comparison controls">
+                <div className="compare-count">
+                  Selected for comparison: {selectedComparisonWines.length}/2
+                </div>
+                <div className="compare-toolbar-actions">
+                  <button
+                    type="button"
+                    className="compare-wines-button"
+                    disabled={!canCompare}
+                    onClick={() => setIsCompareOpen(true)}
+                  >
+                    Compare Wines
+                  </button>
+                  {selectedComparisonWines.length > 0 && (
+                    <button
+                      type="button"
+                      className="clear-compare-button"
+                      onClick={() => {
+                        setCompareSelection([])
+                        setIsCompareOpen(false)
+                        setCompareLimitMessage('')
+                      }}
+                    >
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {compareLimitMessage && (
+              <WarningBanner message={compareLimitMessage} />
+            )}
+
+            {isCompareOpen && canCompare && (
+              <section
+                ref={comparisonPanelRef}
+                className="comparison-panel"
+                aria-label="Side-by-side wine comparison"
+              >
+                <div className="comparison-panel-header">
+                  <h3>Wine Comparison</h3>
+                  <button
+                    type="button"
+                    className="comparison-close-button"
+                    onClick={() => setIsCompareOpen(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className="comparison-header-divider" />
+                {bestMatchWine && (
+                  <p className="comparison-summary">
+                    Best Match: {bestMatchWine.title} ({formatSimilarity(bestMatchWine.similarity)})
+                  </p>
+                )}
+                {bestMatchWine && (
+                  <p className="comparison-reason">
+                    {bestMatchWine.title} is a better match based on its higher similarity score.
+                  </p>
+                )}
+
+                <div className="comparison-grid">
+                  <article className={`comparison-card ${bestMatchIndex === 0 ? 'best-match-card' : ''}`}>
+                    <h4>{selectedComparisonWines[0].wine.title}</h4>
+                    {bestMatchIndex === 0 && <span className="best-match-badge">Best Match</span>}
+                    <dl className="comparison-list">
+                      <div><dt>Variety</dt><dd>{selectedComparisonWines[0].wine.variety ?? 'N/A'}</dd></div>
+                      <div><dt>Winery</dt><dd>{selectedComparisonWines[0].wine.winery ?? 'N/A'}</dd></div>
+                      <div><dt>Country</dt><dd>{selectedComparisonWines[0].wine.country ?? 'N/A'}</dd></div>
+                      <div><dt>Price</dt><dd>{formatPrice(selectedComparisonWines[0].wine.price)}</dd></div>
+                      <div><dt>Points</dt><dd>{formatPoints(selectedComparisonWines[0].wine.points)}</dd></div>
+                      <div><dt>Match</dt><dd>{formatSimilarity(selectedComparisonWines[0].wine.similarity)}</dd></div>
+                      <div><dt>Description</dt><dd>{selectedComparisonWines[0].wine.description ?? 'No description available.'}</dd></div>
+                    </dl>
+                    {selectedComparisonEntries[0] && (
+                      <div className="comparison-chart-wrap">
+                        <LatentComparisonCharts
+                          comparisons={[selectedComparisonEntries[0].comparison]}
+                          isComparisonView
+                        />
+                      </div>
+                    )}
+                  </article>
+                  <article className={`comparison-card ${bestMatchIndex === 1 ? 'best-match-card' : ''}`}>
+                    <h4>{selectedComparisonWines[1].wine.title}</h4>
+                    {bestMatchIndex === 1 && <span className="best-match-badge">Best Match</span>}
+                    <dl className="comparison-list">
+                      <div><dt>Variety</dt><dd>{selectedComparisonWines[1].wine.variety ?? 'N/A'}</dd></div>
+                      <div><dt>Winery</dt><dd>{selectedComparisonWines[1].wine.winery ?? 'N/A'}</dd></div>
+                      <div><dt>Country</dt><dd>{selectedComparisonWines[1].wine.country ?? 'N/A'}</dd></div>
+                      <div><dt>Price</dt><dd>{formatPrice(selectedComparisonWines[1].wine.price)}</dd></div>
+                      <div><dt>Points</dt><dd>{formatPoints(selectedComparisonWines[1].wine.points)}</dd></div>
+                      <div><dt>Match</dt><dd>{formatSimilarity(selectedComparisonWines[1].wine.similarity)}</dd></div>
+                      <div><dt>Description</dt><dd>{selectedComparisonWines[1].wine.description ?? 'No description available.'}</dd></div>
+                    </dl>
+                    {selectedComparisonEntries[1] && (
+                      <div className="comparison-chart-wrap">
+                        <LatentComparisonCharts
+                          comparisons={[selectedComparisonEntries[1].comparison]}
+                          isComparisonView
+                        />
+                      </div>
+                    )}
+                  </article>
+                </div>
+              </section>
+            )}
+
             {results.length === 0 ? (
               noStrongMatches ? null : (
                 <div className="results-message">No wines were found for this search.</div>
@@ -339,17 +531,28 @@ function App(): JSX.Element {
               <>
                 <div
                   id="answer-box"
-                  className={selectedIndex !== null ? 'answer-box--explanation-open' : undefined}
+                  className={openExplanationIds.size > 0 ? 'answer-box--explanation-open' : undefined}
                 >
-                  {visibleResults.map(({ wine, originalIndex }) => (
-                    <WineCard
-                      key={`${wine.title}-${originalIndex}`}
-                      wine={wine}
-                      comparison={comparisons[originalIndex]}
-                      isExpanded={selectedIndex === originalIndex}
-                      onToggle={() => setSelectedIndex(selectedIndex === originalIndex ? null : originalIndex)}
-                    />
-                  ))}
+                  {visibleResults.map(({ wine, originalIndex }) => {
+                    const cardId = `${wine.title}-${originalIndex}`
+                    return (
+                      <WineCard
+                        key={cardId}
+                        wine={wine}
+                        comparison={comparisons[originalIndex]}
+                        isTopMatch={
+                          typeof wine.similarity === 'number'
+                          && Number.isFinite(wine.similarity)
+                          && wine.similarity === maxVisibleMatch
+                        }
+                        isExpanded={openExplanationIds.has(cardId)}
+                        onToggle={() => toggleExplanation(cardId)}
+                        isCompareSelected={compareSelection.includes(originalIndex)}
+                        disableCompareSelect={compareSelection.length >= 2 && !compareSelection.includes(originalIndex)}
+                        onCompareToggle={() => toggleCompareSelection(originalIndex)}
+                      />
+                    )
+                  })}
                 </div>
                 <PaginationControls
                   currentPage={currentPage}

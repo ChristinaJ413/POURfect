@@ -26,17 +26,22 @@ type Comparison = {
 
 type Props = {
   comparisons: Comparison[];
+  isComparisonView?: boolean;
 };
 
-export default function LatentComparisonCharts({ comparisons }: Props) {
+export default function LatentComparisonCharts({ comparisons, isComparisonView = false }: Props) {
   if (!comparisons || comparisons.length === 0) return null;
 
   return (
     <div className="latent-chart-root">
-      <h2>Why This Wine Was Chosen</h2>
-      <p style={{ marginBottom: "1rem" }}>
-        This chart compares the query to one wine across the query’s strongest latent dimensions.
-      </p>
+      {!isComparisonView && (
+        <>
+          <h2>Why This Wine Was Chosen</h2>
+          <p style={{ marginBottom: "1rem" }}>
+            This chart compares the query to one wine across the query’s strongest latent dimensions.
+          </p>
+        </>
+      )}
 
       {comparisons.map((comp, idx) => {
         const chartData = comp.dimensions.map((d) => ({
