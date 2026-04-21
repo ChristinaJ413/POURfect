@@ -23,6 +23,28 @@ _vectorizer = None
 _svd = None
 _dim_labels = None
 
+def find_wine_by_name(query):
+    """
+    Try to find an exact or near-exact wine title match in the dataset.
+    """
+    if not query or not query.strip():
+        return []
+
+    df, X, vectorizer, svd, dim_labels = load_resources()
+    q = query.strip().lower()
+
+    # exact title match
+    exact = df[df["title"].fillna("").str.lower() == q]
+    if not exact.empty:
+        return exact.to_dict(orient="records")
+
+    # contains match
+    contains = df[df["title"].fillna("").str.lower().str.contains(q, regex=False)]
+    if not contains.empty:
+        return contains.head(5).to_dict(orient="records")
+
+    return []
+
 def build_dimension_labels(vectorizer, svd, top_n=5):
     """
     Build human-readable labels for each latent dimension
@@ -61,19 +83,41 @@ def format_wines_for_llm(results, max_items=5):
     return "\n\n".join(lines)
 
 def get_chatbot_context(query, top_k=5):
-    """
-    Retrieve wines for a user query and format them for an LLM prompt.
-    """
+    direct_matches = find_wine_by_name(query)
+
+    if direct_matches:
+        # normalize fields to match your usual records format
+        normalized = []
+        for row in direct_matches:
+            normalized.append({
+                "title": None if pd.isna(row.get("title")) else str(row.get("title")),
+                "variety": None if pd.isna(row.get("variety")) else str(row.get("variety")),
+                "winery": None if pd.isna(row.get("winery")) else str(row.get("winery")),
+                "price": None if pd.isna(row.get("price")) else float(row.get("price")),
+                "points": None if pd.isna(row.get("points")) else int(row.get("points")),
+                "country": None if pd.isna(row.get("country")) else str(row.get("country")),
+                "description": None if pd.isna(row.get("description")) else str(row.get("description")),
+                "similarity": 1.0,
+            })
+
+        return {
+            "query": query,
+            "results": normalized,
+            "context_text": format_wines_for_llm(normalized, max_items=top_k),
+            "latent_dimensions": [],
+            "comparisons": [],
+            "direct_match": True,
+        }
+
     data = search_wines(query, top_k=top_k)
-    results = data["results"]
-    context_text = format_wines_for_llm(results, max_items=top_k)
 
     return {
-        "query": query,
-        "results": results,
-        "context_text": context_text,
+        "query": data["query"],
+        "results": data["results"],
+        "context_text": format_wines_for_llm(data["results"], max_items=top_k),
         "latent_dimensions": data["latent_dimensions"],
         "comparisons": data["comparisons"],
+        "direct_match": False,
     }
 
 def load_resources():

@@ -16,8 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 def register_chat_route(app, get_chatbot_context):
-    """Register the /api/chat SSE endpoint. Called from routes.py."""
-
     @app.route("/api/chat", methods=["POST"])
     def chat():
         data = request.get_json() or {}
@@ -28,63 +26,67 @@ def register_chat_route(app, get_chatbot_context):
 
         api_key = os.getenv("SPARK_API_KEY")
         if not api_key:
-            return jsonify({"error": "API_KEY not set — add it to your .env file"}), 500
+            return jsonify({"error": "SPARK_API_KEY not set"}), 500
 
         client = LLMClient(api_key=api_key)
 
         try:
             context = get_chatbot_context(user_message, top_k=5)
-            wines = context.get("results", [])
             context_text = context.get("context_text", "").strip()
-        except Exception as e:
-            logger.error(f"Wine retrieval error: {e}")
-            return jsonify({"error": "Failed to retrieve wine matches"}), 500
+        except Exception:
+            context_text = ""
 
-        if wines:
-            messages = [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are the wine assistant for the POURfect app. "
-                        "Answer using only the retrieved wines provided to you. "
-                        "Do not invent wines, ratings, descriptions, or food pairings not grounded in the provided context. "
-                        "Be concise, helpful, and natural. "
-                        "If the matches seem weak, say so clearly."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"User question: {user_message}\n\n"
-                        f"Retrieved wines:\n\n{context_text}\n\n"
-                        "Recommend the wines in the exact order provided (highest similarity first). Do not reorder or skip any wines. Explain why each wine fits the user's request."
-                    ),
-                },
-            ]
-        else:
-            messages = [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are the wine assistant for the POURfect app. "
-                        "No wine matches were retrieved. "
-                        "Politely explain that no strong matches were found and suggest a simpler food query."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": user_message,
-                },
-            ]
+        system_prompt = """
+You are the POURfect wine assistant, an expert on wine pairing, wine styles,
+grapes, regions, tasting terms, and food-and-wine matching.
+
+You have two sources of knowledge:
+1. Retrieved wines from the POURfect dataset
+2. Your general wine expertise
+
+Rules:
+- If the user is asking for recommendations, comparisons, or explanations about wines
+  from the dataset, use the retrieved wines directly.
+- If the dataset does not contain enough information, you may use general wine knowledge
+  to explain concepts, pairing logic, grape/style expectations, and likely characteristics.
+- Never invent a wine that is not in the retrieved dataset when naming specific recommendations.
+- Never make up dataset-specific facts that were not provided.
+- If something is unknown from the dataset, say so clearly, then provide the best general explanation.
+- Be helpful, natural, and concise.
+- When listing recommendations, use bullets and bold the wine names.
+
+Important rules:
+- If a retrieved wine is provided in the context, treat it as being in the dataset.
+- Do not say a wine is 'not in the dataset' unless the backend context explicitly says no direct match was found.
+- If the user names a specific wine and it appears in the retrieved context, discuss that wine directly.
+- Never contradict the provided context.
+- You may use general wine knowledge to explain style and pairing, but not to deny the existence of a wine already present in context.
+"""
+
+        user_prompt = f"""
+User question:
+{user_message}
+
+Retrieved wines from the dataset:
+{context_text if context_text else "No strong retrieved wines were found."}
+
+Answer the user's question as a wine expert.
+If relevant, use the dataset wines above.
+If needed, supplement with general wine knowledge.
+Clearly distinguish between dataset-based statements and general wine knowledge.
+"""
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
 
         def generate():
             try:
                 for chunk in client.chat(messages, stream=True):
                     if chunk.get("content"):
                         yield f"data: {json.dumps({'content': chunk['content']})}\n\n"
-
-            except Exception as e:
-                logger.error(f"Streaming error: {e}")
+            except Exception:
                 yield f"data: {json.dumps({'error': 'Streaming error occurred'})}\n\n"
 
         return Response(
