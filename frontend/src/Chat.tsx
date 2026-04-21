@@ -19,9 +19,17 @@ interface ChatProps {
   onSearchTerm: (term: string) => void
   currentSearchTerm?: string
   currentResults?: WineResult[]
+  pendingMessage: string | null
+  clearPendingMessage: () => void
 }
 
-function Chat({ onSearchTerm, currentSearchTerm, currentResults }: ChatProps): JSX.Element {
+function Chat({
+  onSearchTerm,
+  currentSearchTerm,
+  currentResults,
+  pendingMessage,
+  clearPendingMessage
+}: ChatProps): JSX.Element {
   const [messages, setMessages] = useState<Message[]>([
     {
       text: "Hello! 👋 I'm your personal POURFECT wine assistant. Ask me anything about wine!",
@@ -37,7 +45,14 @@ function Chat({ onSearchTerm, currentSearchTerm, currentResults }: ChatProps): J
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  const sendMessage = async (e: React.FormEvent): Promise<void> => {
+  useEffect(() => {
+    if (pendingMessage) {
+      void sendTextMessage(pendingMessage)
+      clearPendingMessage()
+    }
+  }, [pendingMessage])
+
+  /*const sendMessage = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     const text = input.trim()
     if (!text || loading) return
@@ -129,6 +144,89 @@ function Chat({ onSearchTerm, currentSearchTerm, currentResults }: ChatProps): J
       ])
       setLoading(false)
     }
+  }*/
+
+  const sendTextMessage = async (text: string): Promise<void> => {
+    if (!text || loading) return
+
+    setMessages(prev => [...prev, { text, isUser: true }])
+    setInput('')
+    setLoading(true)
+    inputRef.current?.focus()
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          currentSearchTerm,
+          currentResults,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        setMessages(prev => [
+          ...prev,
+          { text: 'Error: ' + (data.error || response.status), isUser: false },
+        ])
+        setLoading(false)
+        return
+      }
+
+      let assistantText = ''
+      setMessages(prev => [...prev, { text: '', isUser: false }])
+      setLoading(false)
+
+      const reader = response.body?.getReader()
+      if (!reader) return
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+
+          try {
+            const data = JSON.parse(line.slice(6))
+
+            if (data.search_term !== undefined) {
+              onSearchTerm(data.search_term)
+            }
+
+            if (data.content !== undefined) {
+              assistantText += data.content
+              setMessages(prev => [
+                ...prev.slice(0, -1),
+                { text: assistantText, isUser: false },
+              ])
+            }
+          } catch { }
+        }
+      }
+    } catch {
+      setMessages(prev => [
+        ...prev,
+        { text: 'Something went wrong.', isUser: false },
+      ])
+      setLoading(false)
+    }
+  }
+
+  const sendMessage = (e: React.FormEvent): void => {
+    e.preventDefault()
+    const text = input.trim()
+    if (!text) return
+    void sendTextMessage(text)
   }
 
   return (
@@ -157,7 +255,7 @@ function Chat({ onSearchTerm, currentSearchTerm, currentResults }: ChatProps): J
           <input
             ref={inputRef}
             type="text"
-            placeholder="Ask about a dish or pairing idea"
+            placeholder="Ask me anything about wine..."
             value={input}
             onChange={e => setInput(e.target.value)}
             disabled={false}

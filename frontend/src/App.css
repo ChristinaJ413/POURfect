@@ -186,7 +186,7 @@
   right: 24px;
   bottom: 84px;
   width: 380px;
-  max-height: 70vh;   
+  max-height: 70vh;
   height: auto;
   background: white;
   border-radius: 20px;
@@ -978,6 +978,88 @@
 
 .chat-section {
   margin-top: 0.25rem;
+}
+
+.ask-chat-inline {
+  background: none;
+  border: none;
+  color: #8b0000;
+  /* or your accent color */
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 6px;
+}
+
+.ask-chat-inline:hover {
+  text-decoration: underline;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.ask-chat-pill {
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+
+  border: 1px solid rgba(100, 13, 20, 0.25);
+  background: linear-gradient(140deg,
+      rgba(173, 40, 49, 0.12),
+      rgba(100, 13, 20, 0.08));
+
+  color: #38040e;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition: all 0.18s ease;
+}
+
+
+.ask-ai-label {
+  font-size: 0.65rem;
+  color: #888;
+}
+
+.ask-ai-sub {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.ask-ai-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.ask-chat-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(56, 4, 14, 0.12);
+}
+
+.ask-ai-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(100, 13, 20, 0.6);
+}
+
+.ask-ai-sub {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #38040e;
 }
 
 .pagination-controls {

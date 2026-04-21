@@ -27,9 +27,11 @@ function App(): JSX.Element {
   const [comparisons, setComparisons] = useState<Comparison[]>([])
   const [hasSearched, setHasSearched] = useState<boolean>(false)
 
-  const [isChatOpen, setIsChatOpen] = useState<boolean>(false)
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(true)
   const [suggestedQueries, setSuggestedQueries] = useState<string[]>([])
   const [noStrongMatches, setNoStrongMatches] = useState<boolean>(false)
+
+  const [pendingChatMessage, setPendingChatMessage] = useState<string | null>(null)
 
   const sampleMeals = ['Steak', 'Pizza', 'Pasta', 'Burger', 'Lobster']
   const [openExplanationIds, setOpenExplanationIds] = useState<Set<string>>(new Set())
@@ -93,6 +95,13 @@ function App(): JSX.Element {
       setCurrentPage(1)
       setOpenExplanationIds(new Set())
     }
+  }
+
+  const handleAskAboutWine = (wine: WineResult): void => {
+    const message = `Why is "${wine.title}" a good match for ${searchTerm}? Include tasting notes and pairing details.`
+
+    setIsChatOpen(true)
+    setPendingChatMessage(message)
   }
 
   const onSearchSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
@@ -347,7 +356,7 @@ function App(): JSX.Element {
 
           {suggestedQueries.length > 0 && hasSearched && (
             <div className="suggestions-block">
-              <span className="suggestion-label">Suggested queries</span>
+              <span className="suggestion-label">AI Suggested queries</span>
               <div
                 className="suggestion-chips"
                 role="group"
@@ -385,11 +394,11 @@ function App(): JSX.Element {
 
         {!hasSearched && (
           <section className="empty-state">
-            <p className="empty-heading">Start with a simple meal search</p>
+            <p className="empty-heading">Start with a food or meal search</p>
             <p className="empty-copy">
               Enter a dish and POURfect will return wine matches ranked by similarity and pairing relevance.
             </p>
-            <p className="empty-note">Tip: best results usually come from simple meal names.</p>
+            <p className="empty-note">Tip: check out the chatbot to learn more about the wines.</p>
           </section>
         )}
 
@@ -550,6 +559,7 @@ function App(): JSX.Element {
                         isCompareSelected={compareSelection.includes(originalIndex)}
                         disableCompareSelect={compareSelection.length >= 2 && !compareSelection.includes(originalIndex)}
                         onCompareToggle={() => toggleCompareSelection(originalIndex)}
+                        onAskAboutWine={handleAskAboutWine}
                       />
                     )
                   })}
@@ -595,6 +605,8 @@ function App(): JSX.Element {
                     onSearchTerm={handleSearch}
                     currentSearchTerm={searchTerm}
                     currentResults={results}
+                    pendingMessage={pendingChatMessage}
+                    clearPendingMessage={() => setPendingChatMessage(null)}
                   />
                 </div>
               </section>

@@ -10,6 +10,7 @@ interface WineCardProps {
   isCompareSelected: boolean
   disableCompareSelect: boolean
   onCompareToggle: () => void
+  onAskAboutWine: (wine: WineResult) => void
 }
 
 function WineCard({
@@ -21,6 +22,7 @@ function WineCard({
   isCompareSelected,
   disableCompareSelect,
   onCompareToggle,
+  onAskAboutWine,
 }: WineCardProps): JSX.Element {
   const validPrice = typeof wine.price === 'number' && Number.isFinite(wine.price)
   const validPoints = typeof wine.points === 'number' && Number.isFinite(wine.points)
@@ -54,6 +56,19 @@ function WineCard({
       </div>
 
       <p className="wine-description">{wine.description ?? 'No description available.'}</p>
+
+      <div className="card-actions">
+        <div className="ask-ai-wrapper">
+          <span className="ask-ai-label">Ask AI</span>
+          <button
+            type="button"
+            className="ask-chat-pill"
+            onClick={() => onAskAboutWine(wine)}
+          >
+            Why this wine?
+          </button>
+        </div>
+      </div>
 
       <div className="compare-toggle-row">
         <label className={`compare-toggle ${isCompareSelected ? 'selected' : ''} ${disableCompareSelect ? 'disabled' : ''}`}>
