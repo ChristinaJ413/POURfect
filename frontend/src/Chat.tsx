@@ -24,7 +24,7 @@ interface ChatProps {
 function Chat({ onSearchTerm, currentSearchTerm, currentResults }: ChatProps): JSX.Element {
   const [messages, setMessages] = useState<Message[]>([
     {
-      text: "Hello! 👋 Ask me about wine pairings and I’ll help you find the perfect match.",
+      text: "Hello! 👋 I'm your personal POURFECT wine assistant. Ask me anything about wine!",
       isUser: false,
     },
   ])
