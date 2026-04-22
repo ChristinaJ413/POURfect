@@ -592,7 +592,7 @@ function App(): JSX.Element {
             {isChatOpen && (
               <section className="chat-popup">
                 <div className="chat-popup-header">
-                  <h2>POURfect Assistant</h2>
+                  <h2>POURfect Wine Assistant</h2>
                   <button
                     type="button"
                     className="chat-close-button"

@@ -18,6 +18,27 @@ logger = logging.getLogger(__name__)
 
 SEARCH_TOP_K = 50
 
+from backend.search_wines import load_resources
+import random
+
+def get_random_wines(n=20):
+    df, _, _, _, _ = load_resources()
+    sample = df.sample(n=min(n, len(df)), random_state=None)
+
+    records = []
+    for _, row in sample.iterrows():
+        records.append({
+            "title": str(row.get("title")),
+            "variety": str(row.get("variety")),
+            "winery": str(row.get("winery")),
+            "price": row.get("price"),
+            "points": row.get("points"),
+            "country": str(row.get("country")),
+            "description": str(row.get("description")),
+            "similarity": 0.0,  # important: not a real match
+        })
+    return records
+
 def register_chat_route(app, get_chatbot_context):
     @app.route("/api/chat", methods=["POST"])
     def chat():
@@ -50,7 +71,8 @@ def register_chat_route(app, get_chatbot_context):
                 data = search_wines(search_query, top_k=SEARCH_TOP_K)
                 context_text = format_wines_for_llm(data["results"], max_items=50)
             else:
-                context_text = ""
+                random_wines = get_random_wines(n=50)
+                context_text = format_wines_for_llm(random_wines, max_items=50)
             print(context_text)
         except Exception:
             context_text = ""
