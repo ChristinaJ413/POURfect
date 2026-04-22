@@ -21,6 +21,7 @@ interface ChatProps {
   currentResults?: WineResult[]
   pendingMessage: string | null
   clearPendingMessage: () => void
+  selectedWine: WineResult | null
 }
 
 function Chat({
@@ -28,7 +29,8 @@ function Chat({
   currentSearchTerm,
   currentResults,
   pendingMessage,
-  clearPendingMessage
+  clearPendingMessage,
+  selectedWine,
 }: ChatProps): JSX.Element {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -162,6 +164,7 @@ function Chat({
           message: text,
           currentSearchTerm,
           currentResults,
+          selectedWine,
         }),
       })
 

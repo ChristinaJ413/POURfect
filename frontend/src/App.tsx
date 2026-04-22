@@ -97,9 +97,12 @@ function App(): JSX.Element {
     }
   }
 
+  const [selectedWine, setSelectedWine] = useState<WineResult | null>(null)
+
   const handleAskAboutWine = (wine: WineResult): void => {
     const message = `Why is "${wine.title}" a good match for ${searchTerm}? Include tasting notes and pairing details.`
 
+    setSelectedWine(wine)
     setIsChatOpen(true)
     setPendingChatMessage(message)
   }
@@ -607,6 +610,7 @@ function App(): JSX.Element {
                     currentResults={results}
                     pendingMessage={pendingChatMessage}
                     clearPendingMessage={() => setPendingChatMessage(null)}
+                    selectedWine={selectedWine}
                   />
                 </div>
               </section>

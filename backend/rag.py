@@ -40,7 +40,7 @@ def is_good_retrieval(results, threshold = 0.3):
   return results[0].get("similarity", 0) >= threshold
 
 # build context for LLM
-def build_context(results, sample_descriptions, k=5):
+def build_context(results, sample_descriptions, k=15):
   if is_good_retrieval(results):
     return "\n".join([
       r["description"] for r in results[:k] if r.get("description")

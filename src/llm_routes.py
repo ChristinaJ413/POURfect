@@ -11,16 +11,24 @@ import os
 import logging
 from flask import request, jsonify, Response, stream_with_context
 from infosci_spark_client import LLMClient
+from backend.search_wines import format_wines_for_llm, search_wines
+
 
 logger = logging.getLogger(__name__)
 
+SEARCH_TOP_K = 50
 
 def register_chat_route(app, get_chatbot_context):
     @app.route("/api/chat", methods=["POST"])
     def chat():
         data = request.get_json() or {}
-        user_message = (data.get("message") or "").strip()
+        #user_message = (data.get("message") or "").strip()
 
+        user_message = (data.get("message") or "").strip()
+        search_query = (data.get("currentSearchTerm") or "").strip()
+        frontend_results = data.get("currentResults")
+        selected_wine = data.get("selectedWine")
+        
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
 
@@ -31,8 +39,19 @@ def register_chat_route(app, get_chatbot_context):
         client = LLMClient(api_key=api_key)
 
         try:
-            context = get_chatbot_context(user_message, top_k=5)
-            context_text = context.get("context_text", "").strip()
+            #data = search_wines(user_message, top_k=SEARCH_TOP_K)
+            #results = data["results"]
+            #context = format_wines_for_llm(results, max_items=20)
+            #context = get_chatbot_context(user_message, top_k=15)
+            #context_text = context.get("context_text", "").strip()
+            if frontend_results:
+                context_text = format_wines_for_llm(frontend_results, max_items=50)
+            elif search_query:
+                data = search_wines(search_query, top_k=SEARCH_TOP_K)
+                context_text = format_wines_for_llm(data["results"], max_items=50)
+            else:
+                context_text = ""
+            print(context_text)
         except Exception:
             context_text = ""
 
@@ -80,7 +99,7 @@ Clearly distinguish between dataset-based statements and general wine knowledge.
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
-
+        
         def generate():
             try:
                 for chunk in client.chat(messages, stream=True):
