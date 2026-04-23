@@ -431,11 +431,11 @@
 }
 
 .comparison-panel {
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(100, 13, 20, 0.2);
-  border-radius: 18px;
-  padding: 1rem;
-  box-shadow: 0 12px 26px rgba(56, 4, 14, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(100, 13, 20, 0.22);
+  border-radius: 20px;
+  padding: 1.2rem;
+  box-shadow: 0 14px 32px rgba(56, 4, 14, 0.14);
 }
 
 .comparison-panel-header {
@@ -475,8 +475,8 @@
   position: relative;
   background: #ffffff;
   border: 1px solid rgba(100, 13, 20, 0.1);
-  border-radius: 14px;
-  padding: 0.85rem;
+  border-radius: 16px;
+  padding: 0.8rem 1rem;
   min-width: 0;
 }
 
@@ -487,37 +487,32 @@
   background: linear-gradient(90deg, transparent 0%, rgba(100, 13, 20, 0.35) 50%, transparent 100%);
 }
 
-.comparison-summary {
-  margin: 0 0 0.2rem;
-  color: #1f4f2e;
-  font-size: 0.96rem;
-  font-weight: 700;
-}
-
-.comparison-reason {
-  margin: 0 0 0.9rem;
-  color: #5d6b60;
-  font-size: 0.89rem;
-}
-
 .best-match-card {
   border-color: rgba(71, 136, 84, 0.36);
   background: rgba(242, 250, 244, 0.92);
   box-shadow: 0 8px 20px rgba(49, 109, 61, 0.12);
 }
 
-.best-match-badge {
+.comparison-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.comparison-better-match-badge {
   display: inline-flex;
   align-items: center;
-  margin-top: 0.48rem;
-  padding: 0.2rem 0.55rem;
+  margin-top: 0;
+  padding: 0.18rem 0.52rem;
   border-radius: 999px;
-  background: rgba(71, 136, 84, 0.16);
-  border: 1px solid rgba(71, 136, 84, 0.35);
-  color: #1f4f2e;
-  font-size: 0.76rem;
-  font-weight: 700;
+  background: #eef8f0;
+  border: 1px solid rgba(71, 136, 84, 0.25);
+  color: #2f6b3d;
+  font-size: 0.73rem;
+  font-weight: 650;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .comparison-card h4 {
@@ -528,7 +523,7 @@
 }
 
 .comparison-list {
-  margin: 0.75rem 0 0;
+  margin: 0.55rem 0 0;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
@@ -555,8 +550,35 @@
   overflow-wrap: anywhere;
 }
 
+.comparison-panel .comparison-match-text {
+  color: #000000;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
 .comparison-chart-wrap {
-  margin-top: 0.85rem;
+  margin-top: 0.45rem;
+  width: 100%;
+  max-width: none;
+}
+
+.comparison-chart-wrap .latent-chart-root {
+  margin-top: 0;
+}
+
+.comparison-chart-wrap .latent-comparison-panel {
+  padding: 0.45rem 0.4rem 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.comparison-chart-wrap .latent-comparison-score {
+  margin: 0 0 0.2rem;
+}
+
+.comparison-chart-wrap .latent-chart-container--compact {
+  height: 500px;
+  width: 100%;
+  max-width: none;
 }
 
 .filter-bar {
@@ -809,7 +831,107 @@
 .latent-chart-container {
   width: 100%;
   min-width: 0;
-  height: 360px;
+  height: 460px;
+}
+
+.latent-chart-root--compact .latent-chart-container,
+.latent-chart-container--compact {
+  height: 380px;
+}
+
+.latent-chart-intro {
+  margin-bottom: 0.8rem;
+}
+
+.latent-comparison-panel {
+  margin-bottom: 0.7rem;
+  padding: 0.85rem 0.85rem 0.7rem;
+  border: 1px solid rgba(100, 13, 20, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.latent-comparison-title {
+  margin: 0 0 0.25rem;
+  color: #2b2b2b;
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+
+.latent-comparison-score {
+  margin: 0 0 0.45rem;
+  color: #4d4d4d;
+  font-weight: 600;
+}
+
+.latent-comparison-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.latent-comparison-subheader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.latent-chart-summary {
+  margin: 0.45rem 0 0;
+  color: #5a5a5a;
+  line-height: 1.4;
+  font-size: 0.88rem;
+}
+
+.latent-chart-summary p {
+  margin: 0.12rem 0;
+}
+
+.latent-tooltip {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(100, 13, 20, 0.2);
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+  color: #2e2e2e;
+  font-size: 0.82rem;
+  box-shadow: 0 8px 18px rgba(56, 4, 14, 0.12);
+}
+
+.latent-tooltip-title {
+  font-weight: 700;
+  margin-bottom: 0.22rem;
+  color: #38040e;
+}
+
+.latent-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.latent-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.latent-legend-item--wine {
+  color: #8F2D3A;
+}
+
+.latent-legend-item--query {
+  color: #6F5ACD;
+}
+
+.latent-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 0;
 }
 
 .card-top-row {
@@ -826,20 +948,20 @@
 }
 
 .match-badge {
-  width: 110px;
-  height: 32px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-sizing: border-box;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: #f9f1f1;
-  color: #7a2e2e;
+  background-color: #f9f1f1;
   border: 1px solid #d6b4b4;
+  color: #7a2e2e;
   font-size: 0.85rem;
   font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
-  box-sizing: border-box;
 }
 
 .match-badge-container {
@@ -850,18 +972,23 @@
   flex-shrink: 0;
 }
 
-.match-badge.top-match {
-  background: #f9f1f1;
-  color: #7a2e2e;
-  border: 1px solid #d6b4b4;
-  font-weight: 600;
-  box-shadow: none;
-}
-
-.match-badge.best-match {
-  background: #e6f4ea;
-  color: #2e7d32;
-  border: 1px dashed #81c784;
+.best-match-list-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-width: 110px;
+  min-height: 32px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #eef8f0;
+  border: 1px solid rgba(71, 136, 84, 0.25);
+  color: #2f6b3d;
+  font-size: 0.84rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .result-card.top-match-card {
@@ -1024,17 +1151,15 @@
 }
 
 .ask-chat-pill {
-  padding: 0.5rem 0.9rem;
+  padding: 0.38rem 0.88rem;
   border-radius: 999px;
-
-  border: 1px solid rgba(100, 13, 20, 0.25);
-  background: linear-gradient(140deg,
-      rgba(173, 40, 49, 0.12),
-      rgba(100, 13, 20, 0.08));
-
-  color: #38040e;
+  border: 1px solid #E3C6C6;
+  background: #F6ECEC;
+  color: #8B3A3A;
+  font-family: inherit;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 500;
+  letter-spacing: 0;
   cursor: pointer;
 
   transition: all 0.18s ease;
@@ -1066,6 +1191,8 @@
 }
 
 .ask-chat-pill:hover {
+  background: #EEDDDD;
+  border-color: #D4B0B0;
   transform: translateY(-1px);
   box-shadow: 0 6px 14px rgba(56, 4, 14, 0.12);
 }
@@ -1307,6 +1434,10 @@
 
   .latent-chart-container {
     height: 320px;
+  }
+
+  .comparison-chart-wrap .latent-chart-container--compact {
+    height: 400px;
   }
 
   .comparison-grid {

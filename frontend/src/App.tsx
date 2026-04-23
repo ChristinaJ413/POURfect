@@ -355,13 +355,18 @@ function App(): JSX.Element {
       comparison: comparisons[entry.index],
     }))
     .filter((entry): entry is { index: number, wine: WineResult, comparison: Comparison } => Boolean(entry.comparison))
+  const comparisonDimensionOrder = useMemo(() => {
+    if (selectedComparisonEntries.length === 0) return undefined
+    return selectedComparisonEntries[0].comparison.dimensions
+      .slice(0, 10)
+      .map((d) => d.dimension)
+  }, [selectedComparisonEntries])
   const canCompare = selectedComparisonWines.length === 2
   const firstSimilarity = selectedComparisonWines[0]?.wine.similarity ?? Number.NEGATIVE_INFINITY
   const secondSimilarity = selectedComparisonWines[1]?.wine.similarity ?? Number.NEGATIVE_INFINITY
   const bestMatchIndex = canCompare
     ? (firstSimilarity >= secondSimilarity ? 0 : 1)
     : null
-  const bestMatchWine = bestMatchIndex !== null ? selectedComparisonWines[bestMatchIndex].wine : null
   const bestSimilarity = results.reduce((max, wine) => {
     const similarity = toFiniteNumber(wine.similarity)
     if (similarity === null) return max
@@ -396,9 +401,9 @@ function App(): JSX.Element {
     return `${Math.round(value)}`
   }
 
-  const formatSimilarity = (value: number | null | undefined): string => {
-    if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
-    return `${(value * 100).toFixed(1)}%`
+  const comparisonMatchText = (similarity: number | null | undefined): JSX.Element | string => {
+    if (typeof similarity !== 'number' || !Number.isFinite(similarity)) return 'N/A'
+    return <span className="comparison-match-text">{(similarity * 100).toFixed(1)}%</span>
   }
 
   useEffect(() => {
@@ -553,28 +558,20 @@ function App(): JSX.Element {
                   </button>
                 </div>
                 <div className="comparison-header-divider" />
-                {bestMatchWine && (
-                  <p className="comparison-summary">
-                    Better Match: {bestMatchWine.title} ({formatSimilarity(bestMatchWine.similarity)})
-                  </p>
-                )}
-                {bestMatchWine && (
-                  <p className="comparison-reason">
-                    {bestMatchWine.title} is a better match based on its higher similarity score.
-                  </p>
-                )}
 
                 <div className="comparison-grid">
                   <article className={`comparison-card ${bestMatchIndex === 0 ? 'best-match-card' : ''}`}>
-                    <h4>{selectedComparisonWines[0].wine.title}</h4>
-                    {bestMatchIndex === 0 && <span className="best-match-badge">Better Match</span>}
+                    <div className="comparison-card-header">
+                      <h4>{selectedComparisonWines[0].wine.title}</h4>
+                      {bestMatchIndex === 0 && <span className="comparison-better-match-badge">Better Match</span>}
+                    </div>
                     <dl className="comparison-list">
                       <div><dt>Variety</dt><dd>{selectedComparisonWines[0].wine.variety ?? 'N/A'}</dd></div>
                       <div><dt>Winery</dt><dd>{selectedComparisonWines[0].wine.winery ?? 'N/A'}</dd></div>
                       <div><dt>Country</dt><dd>{selectedComparisonWines[0].wine.country ?? 'N/A'}</dd></div>
                       <div><dt>Price</dt><dd>{formatPrice(selectedComparisonWines[0].wine.price)}</dd></div>
                       <div><dt>Points</dt><dd>{formatPoints(selectedComparisonWines[0].wine.points)}</dd></div>
-                      <div><dt>Match</dt><dd>{formatSimilarity(selectedComparisonWines[0].wine.similarity)}</dd></div>
+                      <div><dt>Match</dt><dd>{comparisonMatchText(selectedComparisonWines[0].wine.similarity)}</dd></div>
                       <div><dt>Description</dt><dd>{selectedComparisonWines[0].wine.description ?? 'No description available.'}</dd></div>
                     </dl>
                     {selectedComparisonEntries[0] && (
@@ -582,20 +579,24 @@ function App(): JSX.Element {
                         <LatentComparisonCharts
                           comparisons={[selectedComparisonEntries[0].comparison]}
                           isComparisonView
+                          compact
+                          sharedDimensionOrder={comparisonDimensionOrder}
                         />
                       </div>
                     )}
                   </article>
                   <article className={`comparison-card ${bestMatchIndex === 1 ? 'best-match-card' : ''}`}>
-                    <h4>{selectedComparisonWines[1].wine.title}</h4>
-                    {bestMatchIndex === 1 && <span className="best-match-badge">Better Match</span>}
+                    <div className="comparison-card-header">
+                      <h4>{selectedComparisonWines[1].wine.title}</h4>
+                      {bestMatchIndex === 1 && <span className="comparison-better-match-badge">Better Match</span>}
+                    </div>
                     <dl className="comparison-list">
                       <div><dt>Variety</dt><dd>{selectedComparisonWines[1].wine.variety ?? 'N/A'}</dd></div>
                       <div><dt>Winery</dt><dd>{selectedComparisonWines[1].wine.winery ?? 'N/A'}</dd></div>
                       <div><dt>Country</dt><dd>{selectedComparisonWines[1].wine.country ?? 'N/A'}</dd></div>
                       <div><dt>Price</dt><dd>{formatPrice(selectedComparisonWines[1].wine.price)}</dd></div>
                       <div><dt>Points</dt><dd>{formatPoints(selectedComparisonWines[1].wine.points)}</dd></div>
-                      <div><dt>Match</dt><dd>{formatSimilarity(selectedComparisonWines[1].wine.similarity)}</dd></div>
+                      <div><dt>Match</dt><dd>{comparisonMatchText(selectedComparisonWines[1].wine.similarity)}</dd></div>
                       <div><dt>Description</dt><dd>{selectedComparisonWines[1].wine.description ?? 'No description available.'}</dd></div>
                     </dl>
                     {selectedComparisonEntries[1] && (
@@ -603,6 +604,8 @@ function App(): JSX.Element {
                         <LatentComparisonCharts
                           comparisons={[selectedComparisonEntries[1].comparison]}
                           isComparisonView
+                          compact
+                          sharedDimensionOrder={comparisonDimensionOrder}
                         />
                       </div>
                     )}
