@@ -10,6 +10,7 @@ import WineCard from './WineCard'
 
 const RESULTS_PER_PAGE = 6
 const WEAK_MATCH_THRESHOLD = 0.15
+type SortOption = 'similarity' | 'price_desc' | 'price_asc' | 'points_desc' | 'points_asc'
 
 const toFiniteNumber = (value: unknown): number | null => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
@@ -25,6 +26,7 @@ function App(): JSX.Element {
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [results, setResults] = useState<WineResult[]>([])
   const [comparisons, setComparisons] = useState<Comparison[]>([])
+  const [loading, setLoading] = useState<boolean>(false)
   const [hasSearched, setHasSearched] = useState<boolean>(false)
 
   const [isChatOpen, setIsChatOpen] = useState<boolean>(true)
@@ -39,6 +41,7 @@ function App(): JSX.Element {
   const [isCompareOpen, setIsCompareOpen] = useState<boolean>(false)
   const [compareLimitMessage, setCompareLimitMessage] = useState<string>('')
   const [currentPage, setCurrentPage] = useState<number>(1)
+  const [sortBy, setSortBy] = useState<SortOption>('similarity')
   const [filters, setFilters] = useState<FilterValues>(DEFAULT_FILTERS)
   const comparisonPanelRef = useRef<HTMLElement | null>(null)
 
@@ -55,6 +58,7 @@ function App(): JSX.Element {
     setHasSearched(query.length > 0)
 
     if (query === '') {
+      setLoading(false)
       setResults([])
       setComparisons([])
       setSuggestedQueries([])
@@ -63,11 +67,24 @@ function App(): JSX.Element {
       setIsCompareOpen(false)
       setCompareLimitMessage('')
       setCurrentPage(1)
+      setSortBy('similarity')
       setOpenExplanationIds(new Set())
       return
     }
 
     try {
+      setLoading(true)
+      setResults([])
+      setComparisons([])
+      setSuggestedQueries([])
+      setNoStrongMatches(false)
+      setCompareSelection([])
+      setIsCompareOpen(false)
+      setCompareLimitMessage('')
+      setCurrentPage(1)
+      setSortBy('similarity')
+      setOpenExplanationIds(new Set())
+
       const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`)
       if (!response.ok) {
         throw new Error('Search request failed')
@@ -93,7 +110,10 @@ function App(): JSX.Element {
       setIsCompareOpen(false)
       setCompareLimitMessage('')
       setCurrentPage(1)
+      setSortBy('similarity')
       setOpenExplanationIds(new Set())
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -193,10 +213,66 @@ function App(): JSX.Element {
       })
   }, [results, filters, priceBounds, pointsBounds])
 
+  const sortedResults = useMemo(() => {
+    const items = [...filteredResults]
+
+    const compareNullableNumber = (
+      a: number | null,
+      b: number | null,
+      direction: 'asc' | 'desc',
+    ): number => {
+      if (a === null && b === null) return 0
+      if (a === null) return 1
+      if (b === null) return -1
+      return direction === 'asc' ? a - b : b - a
+    }
+
+    items.sort((a, b) => {
+      const similarityA = toFiniteNumber(a.wine.similarity)
+      const similarityB = toFiniteNumber(b.wine.similarity)
+      const priceA = toFiniteNumber(a.wine.price)
+      const priceB = toFiniteNumber(b.wine.price)
+      const pointsA = toFiniteNumber(a.wine.points)
+      const pointsB = toFiniteNumber(b.wine.points)
+
+      if (sortBy === 'price_desc') {
+        return compareNullableNumber(priceA, priceB, 'desc')
+      }
+      if (sortBy === 'price_asc') {
+        return compareNullableNumber(priceA, priceB, 'asc')
+      }
+      if (sortBy === 'points_desc') {
+        return compareNullableNumber(pointsA, pointsB, 'desc')
+      }
+      if (sortBy === 'points_asc') {
+        return compareNullableNumber(pointsA, pointsB, 'asc')
+      }
+      return compareNullableNumber(similarityA, similarityB, 'desc')
+    })
+
+    return items
+  }, [filteredResults, sortBy])
+
+  const bestMatchOriginalIndex = useMemo(() => {
+    let bestIndex: number | null = null
+    let bestSimilarity = Number.NEGATIVE_INFINITY
+
+    filteredResults.forEach(({ wine, originalIndex }) => {
+      const similarity = toFiniteNumber(wine.similarity)
+      if (similarity === null) return
+      if (similarity > bestSimilarity) {
+        bestSimilarity = similarity
+        bestIndex = originalIndex
+      }
+    })
+
+    return bestIndex
+  }, [filteredResults])
+
   useEffect(() => {
     setCurrentPage(1)
     setOpenExplanationIds(new Set())
-  }, [filters])
+  }, [filters, sortBy])
   const toggleExplanation = (cardId: string): void => {
     setOpenExplanationIds((prev) => {
       const next = new Set(prev)
@@ -267,13 +343,9 @@ function App(): JSX.Element {
     })
   }, [priceBounds, pointsBounds])
 
-  const totalPages = Math.max(1, Math.ceil(filteredResults.length / RESULTS_PER_PAGE))
+  const totalPages = Math.max(1, Math.ceil(sortedResults.length / RESULTS_PER_PAGE))
   const pageStart = (currentPage - 1) * RESULTS_PER_PAGE
-  const visibleResults = filteredResults.slice(pageStart, pageStart + RESULTS_PER_PAGE)
-  const maxVisibleMatch = visibleResults.reduce((max, { wine }) => {
-    if (typeof wine.similarity !== 'number' || !Number.isFinite(wine.similarity)) return max
-    return Math.max(max, wine.similarity)
-  }, Number.NEGATIVE_INFINITY)
+  const visibleResults = sortedResults.slice(pageStart, pageStart + RESULTS_PER_PAGE)
   const selectedComparisonWines = compareSelection
     .map((idx) => ({ index: idx, wine: results[idx] }))
     .filter((entry): entry is { index: number, wine: WineResult } => Boolean(entry.wine))
@@ -290,7 +362,11 @@ function App(): JSX.Element {
     ? (firstSimilarity >= secondSimilarity ? 0 : 1)
     : null
   const bestMatchWine = bestMatchIndex !== null ? selectedComparisonWines[bestMatchIndex].wine : null
-  const bestSimilarity = results[0]?.similarity ?? 0
+  const bestSimilarity = results.reduce((max, wine) => {
+    const similarity = toFiniteNumber(wine.similarity)
+    if (similarity === null) return max
+    return Math.max(max, similarity)
+  }, 0)
   const showWeakMatchWarning =
     hasSearched
     && (noStrongMatches || (results.length > 0 && bestSimilarity < WEAK_MATCH_THRESHOLD))
@@ -411,16 +487,18 @@ function App(): JSX.Element {
             {results.length > 0 && (
               <FilterBar
                 values={filters}
+                sortBy={sortBy}
                 countries={countryOptions}
                 varieties={varietyOptions}
                 priceBounds={priceBounds}
                 pointsBounds={pointsBounds}
                 onChange={setFilters}
+                onSortChange={(next) => setSortBy(next as SortOption)}
               />
             )}
 
             {showWeakMatchWarning && (
-              <WarningBanner message="No strong matches found for your search. Try a suggested query or a simpler meal name." />
+              <WarningBanner message="No strong matches found. Try a suggested query." />
             )}
 
             {results.length > 0 && (
@@ -477,7 +555,7 @@ function App(): JSX.Element {
                 <div className="comparison-header-divider" />
                 {bestMatchWine && (
                   <p className="comparison-summary">
-                    Best Match: {bestMatchWine.title} ({formatSimilarity(bestMatchWine.similarity)})
+                    Better Match: {bestMatchWine.title} ({formatSimilarity(bestMatchWine.similarity)})
                   </p>
                 )}
                 {bestMatchWine && (
@@ -489,7 +567,7 @@ function App(): JSX.Element {
                 <div className="comparison-grid">
                   <article className={`comparison-card ${bestMatchIndex === 0 ? 'best-match-card' : ''}`}>
                     <h4>{selectedComparisonWines[0].wine.title}</h4>
-                    {bestMatchIndex === 0 && <span className="best-match-badge">Best Match</span>}
+                    {bestMatchIndex === 0 && <span className="best-match-badge">Better Match</span>}
                     <dl className="comparison-list">
                       <div><dt>Variety</dt><dd>{selectedComparisonWines[0].wine.variety ?? 'N/A'}</dd></div>
                       <div><dt>Winery</dt><dd>{selectedComparisonWines[0].wine.winery ?? 'N/A'}</dd></div>
@@ -510,7 +588,7 @@ function App(): JSX.Element {
                   </article>
                   <article className={`comparison-card ${bestMatchIndex === 1 ? 'best-match-card' : ''}`}>
                     <h4>{selectedComparisonWines[1].wine.title}</h4>
-                    {bestMatchIndex === 1 && <span className="best-match-badge">Best Match</span>}
+                    {bestMatchIndex === 1 && <span className="best-match-badge">Better Match</span>}
                     <dl className="comparison-list">
                       <div><dt>Variety</dt><dd>{selectedComparisonWines[1].wine.variety ?? 'N/A'}</dd></div>
                       <div><dt>Winery</dt><dd>{selectedComparisonWines[1].wine.winery ?? 'N/A'}</dd></div>
@@ -533,11 +611,13 @@ function App(): JSX.Element {
               </section>
             )}
 
-            {results.length === 0 ? (
+            {loading ? (
+              <div className="results-message loading-message">Finding the perfect pairing...</div>
+            ) : results.length === 0 ? (
               noStrongMatches ? null : (
                 <div className="results-message">No wines were found for this search.</div>
               )
-            ) : filteredResults.length === 0 ? (
+            ) : sortedResults.length === 0 ? (
               <WarningBanner message="No results match your current filters." />
             ) : (
               <>
@@ -552,11 +632,7 @@ function App(): JSX.Element {
                         key={cardId}
                         wine={wine}
                         comparison={comparisons[originalIndex]}
-                        isTopMatch={
-                          typeof wine.similarity === 'number'
-                          && Number.isFinite(wine.similarity)
-                          && wine.similarity === maxVisibleMatch
-                        }
+                        isTopMatch={bestMatchOriginalIndex === originalIndex}
                         isExpanded={openExplanationIds.has(cardId)}
                         onToggle={() => toggleExplanation(cardId)}
                         isCompareSelected={compareSelection.includes(originalIndex)}

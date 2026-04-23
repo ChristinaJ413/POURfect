@@ -20,20 +20,24 @@ export const DEFAULT_FILTERS: FilterValues = {
 
 interface FilterBarProps {
   values: FilterValues
+  sortBy: string
   countries: string[]
   varieties: string[]
   priceBounds: { min: number; max: number } | null
   pointsBounds: { min: number; max: number } | null
   onChange: (next: FilterValues) => void
+  onSortChange: (next: string) => void
 }
 
 function FilterBar({
   values,
+  sortBy,
   countries,
   varieties,
   priceBounds,
   pointsBounds,
   onChange,
+  onSortChange,
 }: FilterBarProps): JSX.Element {
   const updateField = (field: keyof FilterValues, value: string): void => {
     onChange({ ...values, [field]: value })
@@ -67,7 +71,7 @@ function FilterBar({
 
   return (
     <div className="filter-bar" aria-label="Search filters">
-      <div className="filter-field">
+      <div className="filter-field filter-field--range">
         <div className="filter-heading">
           <span>Price</span>
           <button
@@ -101,7 +105,7 @@ function FilterBar({
         )}
       </div>
 
-      <div className="filter-field">
+      <div className="filter-field filter-field--range">
         <div className="filter-heading">
           <span>Points</span>
           <button
@@ -135,7 +139,7 @@ function FilterBar({
         )}
       </div>
 
-      <label className="filter-field">
+      <label className="filter-field filter-field--country">
         <span>Country</span>
         <select value={values.country} onChange={(e) => updateField('country', e.target.value)}>
           <option value="All">All</option>
@@ -145,13 +149,24 @@ function FilterBar({
         </select>
       </label>
 
-      <label className="filter-field">
+      <label className="filter-field filter-field--variety">
         <span>Variety</span>
         <select value={values.variety} onChange={(e) => updateField('variety', e.target.value)}>
           <option value="All">All</option>
           {varieties.map((variety) => (
             <option key={variety} value={variety}>{variety}</option>
           ))}
+        </select>
+      </label>
+
+      <label className="filter-field filter-field--sort">
+        <span>Sort by</span>
+        <select value={sortBy} onChange={(e) => onSortChange(e.target.value)}>
+          <option value="similarity">Similarity</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+          <option value="points_asc">Points: Low to High</option>
+          <option value="points_desc">Points: High to Low</option>
         </select>
       </label>
     </div>

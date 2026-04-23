@@ -36,7 +36,7 @@ function WineCard({
             <span className={`match-badge ${isTopMatch ? 'top-match' : ''}`}>
               {(wine.similarity * 100).toFixed(1)}% Match
             </span>
-            {isTopMatch && <span className="match-badge best-match">Best Match</span>}
+            {isTopMatch && <span className="match-badge best-match">Better Match</span>}
           </div>
         )}
       </div>
