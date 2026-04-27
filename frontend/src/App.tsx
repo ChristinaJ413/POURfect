@@ -9,7 +9,7 @@ import WarningBanner from './WarningBanner'
 import WineCard from './WineCard'
 
 const RESULTS_PER_PAGE = 6
-const WEAK_MATCH_THRESHOLD = 0.15
+
 type SortOption = 'similarity' | 'price_desc' | 'price_asc' | 'points_desc' | 'points_asc'
 
 const toFiniteNumber = (value: unknown): number | null => {
@@ -372,11 +372,6 @@ function App(): JSX.Element {
   const bestMatchIndex = canCompare
     ? (firstSimilarity >= secondSimilarity ? 0 : 1)
     : null
-  const bestSimilarity = results.reduce((max, wine) => {
-    const similarity = toFiniteNumber(wine.similarity)
-    if (similarity === null) return max
-    return Math.max(max, similarity)
-  }, 0)
   const showWeakMatchWarning =
     hasSearched &&
     !loading &&

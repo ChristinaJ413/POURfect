@@ -22,7 +22,7 @@ interface ChatProps {
   pendingMessage: string | null
   clearPendingMessage: () => void
   selectedWine: WineResult | null
-  usedQuery?: string
+  usedQuery: string
 }
 
 function Chat({
@@ -32,7 +32,6 @@ function Chat({
   pendingMessage,
   clearPendingMessage,
   selectedWine,
-  usedQuery,
 }: ChatProps): JSX.Element {
   const [messages, setMessages] = useState<Message[]>([
     {
