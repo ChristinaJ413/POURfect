@@ -54,18 +54,48 @@ def rewrite_query(user_query, context):
     {
       "role": "system",
       "content": f"""
-You improve search queries for a food and wine pairing information retrieval system. The user enters a meal or food as the query. You should rewrite the query to better capture the flavor, texture, or food type to improve search results. If the original query is already good, you can return it as is.
+  You improve search queries for a food-to-wine retrieval system.
 
-Wine descriptions look like: {context}
+  The goal is NOT to decide the best wine pairing.
+  The goal is to rewrite the query so it uses words and phrases
+  that appear in wine descriptions.
 
-Generate 3 better search queries.
+  You are given:
+  - A food query
+  - Wine descriptions from the dataset
 
-Rules:
-- Focus on flavor, texture, or food type
-- Keep them short
-- Return ONLY a Python list
-- DO NOT include markdown, backticks, or code fences
-"""
+  Original query:
+  {user_query}
+
+  Wine descriptions:
+  {context}
+
+  Instructions:
+  - Keep the original food as the core of every query
+  - Add only flavor or tasting-note words that are directly related to the food
+  - Use words that appear in or are strongly implied by the wine descriptions
+  - Focus on ingredients and flavors in the dish
+
+  Example:
+  - Original query: "pizza"
+  - Rewritten query: "pizza with tomato and herbs" (because many wine descriptions mention "tomato" and "herbs", which are common pizza ingredients)
+
+  Strict rules:
+  - Every query MUST include the original food (or a very close variant)
+  - Added words must be logically connected to the food (not generic wine terms)
+  - Do NOT invent unrelated concepts (e.g., do not add "berry" to pizza unless clearly justified)
+  - Do NOT convert the query into wine types (no "red wine", "tannins", etc.)
+  - Do NOT describe wine structure (no acidity, body, tannins)
+
+  Generate 4 improved queries.
+
+  Formatting rules:
+  - Short phrases (3–6 words)
+  - No commas
+  - No full sentences
+  - Return ONLY a Python list
+  - No markdown, no backticks
+  """
     },
     {
       "role": "user",
@@ -90,12 +120,24 @@ def run_query_with_suggestions(user_query, sample_descriptions):
 
   suggestions = rewrite_query(user_query, context)
 
+  rewritten_query = suggestions[0] if suggestions else user_query
+
+  new_results = search_wines(rewritten_query, top_k=SEARCH_TOP_K)["results"]
+
+  if not is_good_retrieval(new_results):
+    final_results = results
+    user_query = user_query
+  else:
+    final_results = new_results
+    user_query = rewritten_query
+
   return {
     "original_query": user_query,
-    "results": results,
+    "rewritten_query": rewritten_query,
+    "results": final_results,
     "comparisons": data["comparisons"],
     "latent_dimensions": data.get("latent_dimensions", []),
-    "suggested_queries": suggestions,
+    "suggested_queries": suggestions[1:] if len(suggestions) > 1 else [],
     "no_strong_matches": data.get("no_strong_matches", False),
   }
 

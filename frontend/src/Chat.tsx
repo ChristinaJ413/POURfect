@@ -22,6 +22,7 @@ interface ChatProps {
   pendingMessage: string | null
   clearPendingMessage: () => void
   selectedWine: WineResult | null
+  usedQuery?: string
 }
 
 function Chat({
@@ -31,10 +32,11 @@ function Chat({
   pendingMessage,
   clearPendingMessage,
   selectedWine,
+  usedQuery,
 }: ChatProps): JSX.Element {
   const [messages, setMessages] = useState<Message[]>([
     {
-      text: "Hello! 👋 I'm your personal POURFECT wine assistant. Ask me anything about wine!",
+      text: "Hello! 👋 I'm your personal POURfect wine assistant. Ask me anything about wine!",
       isUser: false,
     },
   ])
@@ -54,102 +56,10 @@ function Chat({
     }
   }, [pendingMessage])
 
-  /*const sendMessage = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault()
-    const text = input.trim()
-    if (!text || loading) return
-
-    setMessages(prev => [...prev, { text, isUser: true }])
-    setInput('')
-    setLoading(true)
-    inputRef.current?.focus()
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: text,
-          currentSearchTerm,
-          currentResults,
-        }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        setMessages(prev => [
-          ...prev,
-          { text: 'Error: ' + (data.error || response.status), isUser: false },
-        ])
-        setLoading(false)
-        return
-      }
-
-      let assistantText = ''
-      setMessages(prev => [...prev, { text: '', isUser: false }])
-      setLoading(false)
-
-      const reader = response.body?.getReader()
-      if (!reader) {
-        setMessages(prev => [
-          ...prev.slice(0, -1),
-          { text: 'Error: No response body found.', isUser: false },
-        ])
-        return
-      }
-
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-
-          try {
-            const data = JSON.parse(line.slice(6))
-
-            if (data.search_term !== undefined) {
-              onSearchTerm(data.search_term)
-            }
-
-            if (data.error) {
-              setMessages(prev => [
-                ...prev.slice(0, -1),
-                { text: 'Error: ' + data.error, isUser: false },
-              ])
-              return
-            }
-
-            if (data.content !== undefined) {
-              assistantText += data.content
-              setMessages(prev => [
-                ...prev.slice(0, -1),
-                { text: assistantText, isUser: false },
-              ])
-            }
-          } catch {
-            // ignore malformed lines
-          }
-        }
-      }
-    } catch {
-      setMessages(prev => [
-        ...prev,
-        { text: 'Something went wrong. Check the console.', isUser: false },
-      ])
-      setLoading(false)
-    }
-  }*/
-
   const sendTextMessage = async (text: string): Promise<void> => {
     if (!text || loading) return
+
+    const originalQuery = text
 
     setMessages(prev => [...prev, { text, isUser: true }])
     setInput('')
@@ -165,6 +75,7 @@ function Chat({
           currentSearchTerm,
           currentResults,
           selectedWine,
+          isChat: true,
         }),
       })
 
@@ -204,6 +115,18 @@ function Chat({
 
             if (data.search_term !== undefined) {
               onSearchTerm(data.search_term)
+            }
+
+            if (data.used_query !== undefined) {
+              if (data.used_query !== originalQuery) {
+                setMessages(prev => [
+                  ...prev,
+                  {
+                    text: `*We refined your search to find better matches:* "${data.used_query}"`,
+                    isUser: false,
+                  },
+                ])
+              }
             }
 
             if (data.content !== undefined) {

@@ -49,6 +49,7 @@ def register_chat_route(app, get_chatbot_context):
         search_query = (data.get("currentSearchTerm") or "").strip()
         frontend_results = data.get("currentResults")
         selected_wine = data.get("selectedWine")
+        is_chat = data.get("isChat", False)
         
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
@@ -124,6 +125,9 @@ Clearly distinguish between dataset-based statements and general wine knowledge.
         
         def generate():
             try:
+                if not is_chat:
+                    yield f"data: {json.dumps({'used_query': search_query})}\n\n"
+                
                 for chunk in client.chat(messages, stream=True):
                     if chunk.get("content"):
                         yield f"data: {json.dumps({'content': chunk['content']})}\n\n"

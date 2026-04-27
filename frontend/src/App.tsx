@@ -24,6 +24,7 @@ const toFiniteNumber = (value: unknown): number | null => {
 function App(): JSX.Element {
   const [useLlm, setUseLlm] = useState<boolean | null>(null)
   const [searchTerm, setSearchTerm] = useState<string>('')
+  const [usedQuery, setUsedQuery] = useState<string>('')
   const [results, setResults] = useState<WineResult[]>([])
   const [comparisons, setComparisons] = useState<Comparison[]>([])
   const [loading, setLoading] = useState<boolean>(false)
@@ -78,6 +79,7 @@ function App(): JSX.Element {
       setComparisons([])
       setSuggestedQueries([])
       setNoStrongMatches(false)
+      setUsedQuery('')
       setCompareSelection([])
       setIsCompareOpen(false)
       setCompareLimitMessage('')
@@ -95,6 +97,9 @@ function App(): JSX.Element {
       setComparisons(data.comparisons || [])
       setSuggestedQueries(data.suggested_queries || [])
       setNoStrongMatches(data.no_strong_matches === true)
+
+      setUsedQuery(data.rewritten_query || query)
+
       setCompareSelection([])
       setIsCompareOpen(false)
       setCompareLimitMessage('')
@@ -373,8 +378,10 @@ function App(): JSX.Element {
     return Math.max(max, similarity)
   }, 0)
   const showWeakMatchWarning =
-    hasSearched
-    && (noStrongMatches || (results.length > 0 && bestSimilarity < WEAK_MATCH_THRESHOLD))
+    hasSearched &&
+    !loading &&
+    results.length === 0 &&
+    (!usedQuery || usedQuery === searchTerm)
 
   const toggleCompareSelection = (originalIndex: number): void => {
     const isSelected = compareSelection.includes(originalIndex)
@@ -489,6 +496,13 @@ function App(): JSX.Element {
         {hasSearched && (
           <section className="results-section" aria-live="polite">
             <div className="results-divider" />
+
+            {!loading && usedQuery && usedQuery !== searchTerm && (
+              <div className="refined-query">
+                We refined your search to find better matches: "{usedQuery}"
+              </div>
+            )}
+
             {results.length > 0 && (
               <FilterBar
                 values={filters}
@@ -690,6 +704,7 @@ function App(): JSX.Element {
                     pendingMessage={pendingChatMessage}
                     clearPendingMessage={() => setPendingChatMessage(null)}
                     selectedWine={selectedWine}
+                    usedQuery={usedQuery}
                   />
                 </div>
               </section>
