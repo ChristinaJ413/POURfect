@@ -122,24 +122,25 @@ def run_query_with_suggestions(user_query, sample_descriptions):
 
   rewritten_query = suggestions[0] if suggestions else user_query
 
-  new_results = search_wines(rewritten_query, top_k=SEARCH_TOP_K)["results"]
+  new_data = search_wines(rewritten_query, top_k=SEARCH_TOP_K)
+  new_results = new_data["results"]
 
   if not is_good_retrieval(new_results):
-    final_results = results
-    user_query = user_query
+    final_data = data
+    final_query = user_query
   else:
-    final_results = new_results
-    user_query = rewritten_query
+    final_data = new_data
+    final_query = rewritten_query
 
   return {
     "original_query": user_query,
     "rewritten_query": rewritten_query,
-    "results": final_results,
-    "comparisons": data["comparisons"],
-    "latent_dimensions": data.get("latent_dimensions", []),
+    "results": final_data["results"],
+    "comparisons": final_data["comparisons"],
+    "latent_dimensions": final_data.get("latent_dimensions", []),
     "suggested_queries": suggestions[1:] if len(suggestions) > 1 else [],
-    "no_strong_matches": data.get("no_strong_matches", False),
-  }
+    "no_strong_matches": final_data.get("no_strong_matches", False),
+}
 
 def main():
   """
